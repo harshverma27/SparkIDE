@@ -1,78 +1,203 @@
 <!DOCTYPE html>
 <!--
-  blockly/index.html — Local HTML page that hosts the Google Blockly editor.
-  This page is loaded inside a QWebEngineView in main_window.py.
+  blockly/index.html
+  Local HTML page hosting the Google Blockly editor.
+  Loaded inside a QWebEngineView in ui/main_window.py.
 
-  What to do here:
-
-  1. LOAD BLOCKLY
-     Load Blockly from the local vendor files (preferred for offline use) or CDN:
-       <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
-       <script src="https://unpkg.com/blockly/msg/en.js"></script>
-     Then load our custom block definitions and generators:
-       <script src="blocks/arduino_blocks.js"></script>
-       <script src="generators/arduino_generator.js"></script>
-
-  2. LOAD QWEBCHANNEL
-     PyQt6-WebEngine injects qwebchannel.js automatically.
-     In your init script, connect to the Python bridge:
-       new QWebChannel(qt.webChannelTransport, function(channel) {
-           window.bridge = channel.objects.bridge;
-       });
-
-  3. INITIALISE BLOCKLY WORKSPACE
-     Call Blockly.inject('blocklyDiv', { toolbox: TOOLBOX_XML })
-     where TOOLBOX_XML is a string of XML defining the toolbox categories.
-     Categories to include (matching arduino_blocks.js):
-       - Arduino Structure  (setup/loop)
-       - Digital I/O        (pinMode, digitalWrite, digitalRead)
-       - Time               (delay)
-       - Logic              (if/else — reuse Blockly built-ins)
-       - Variables          (int, bool variable blocks)
-       - Serial             (Serial.begin, Serial.print)
-
-  4. LISTEN FOR WORKSPACE CHANGES
-     workspace.addChangeListener(function(event) {
-         if (event.isUiEvent) return;      // ignore pure UI events (scroll, zoom)
-         var code = ArduinoGenerator.workspaceToCode(workspace);
-         if (window.bridge) {
-             bridge.on_code_update(code);  // send C++ string to Python
-         }
-     });
-
-  5. EXPOSE loadWorkspace() FOR PYTHON → JS CALLS
-     window.loadWorkspace = function(jsonStr) {
-         var state = JSON.parse(jsonStr);
-         Blockly.serialization.workspaces.load(state, workspace);
-     };
-     Python calls this via: page.runJavaScript("loadWorkspace(" + json + ")")
-
-  6. EXPOSE getWorkspaceJson() FOR SAVE
-     window.getWorkspaceJson = function() {
-         return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
-     };
-     Python calls this via: page.runJavaScript("getWorkspaceJson()", callback)
-
-  STYLING NOTES:
-  - The #blocklyDiv should fill the entire window (width: 100%, height: 100vh).
-  - Background: dark theme is preferred (matches the app's dark palette).
-  - You can pass a theme to Blockly.inject: theme: Blockly.Themes.Dark
+  Script load order (order matters!):
+    1. qrc:///qtwebchannel/qwebchannel.js  — injected by Qt, provides QWebChannel class
+    2. blockly_compressed.js               — Blockly core (pinned to v10.4.3)
+    3. msg/en.js                           — English UI strings for Blockly
+    4. blocks/arduino_blocks.js            — Our custom block definitions
+    5. generators/arduino_generator.js     — Our C++ code generators
 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>SparkIDE Blockly</title>
+
+  <!-- Qt injects qwebchannel.js, accessible via this qrc URL -->
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+
+  <!-- Blockly v10 from CDN (requires LocalContentCanAccessRemoteUrls = True) -->
+  <script src="https://unpkg.com/blockly@10.4.3/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@10.4.3/msg/en.js"></script>
+
+  <!-- Our Arduino blocks and generators -->
+  <script src="blocks/arduino_blocks.js"></script>
+  <script src="generators/arduino_generator.js"></script>
+
   <style>
-    /* TODO: make #blocklyDiv fill the whole viewport */
-    html, body { margin: 0; padding: 0; height: 100%; background: #1e1e1e; }
-    #blocklyDiv { width: 100%; height: 100vh; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #1e1e1e;
+    }
+    #blocklyDiv {
+      width: 100%;
+      height: 100vh;
+    }
   </style>
 </head>
 <body>
+
   <div id="blocklyDiv"></div>
 
-  <!-- TODO: Add Blockly script tags here -->
-  <!-- TODO: Add arduino_blocks.js and arduino_generator.js script tags -->
-  <!-- TODO: Add QWebChannel init + workspace change listener script -->
+  <script>
+    // ── Toolbox definition ─────────────────────────────────────────────────
+    const TOOLBOX = {
+      kind: 'categoryToolbox',
+      contents: [
+        {
+          kind: 'category',
+          name: '⚙  Structure',
+          colour: '120',
+          contents: [
+            { kind: 'block', type: 'arduino_setup_loop' }
+          ]
+        },
+        {
+          kind: 'category',
+          name: '💡  Digital I/O',
+          colour: '210',
+          contents: [
+            { kind: 'block', type: 'arduino_pinmode' },
+            { kind: 'block', type: 'arduino_digitalwrite' },
+            { kind: 'block', type: 'arduino_digitalread' }
+          ]
+        },
+        {
+          kind: 'category',
+          name: '⏱  Time',
+          colour: '30',
+          contents: [
+            { kind: 'block', type: 'arduino_delay' }
+          ]
+        },
+        {
+          kind: 'category',
+          name: '📦  Variables',
+          colour: '330',
+          contents: [
+            { kind: 'block', type: 'arduino_variable_int' },
+            { kind: 'block', type: 'arduino_variable_bool' }
+          ]
+        },
+        {
+          kind: 'category',
+          name: '📡  Serial',
+          colour: '270',
+          contents: [
+            { kind: 'block', type: 'arduino_serial_begin' },
+            { kind: 'block', type: 'arduino_serial_print' },
+            { kind: 'block', type: 'arduino_serial_println' }
+          ]
+        }
+      ]
+    };
+
+    // ── Pre-built initial workspace: an empty arduino_setup_loop block ─────
+    const INITIAL_STATE = {
+      blocks: {
+        languageVersion: 0,
+        blocks: [
+          { type: 'arduino_setup_loop', x: 40, y: 40 }
+        ]
+      }
+    };
+
+    // ── Main application init ──────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+
+      // Inject Blockly into the div
+      const workspace = Blockly.inject('blocklyDiv', {
+        toolbox: TOOLBOX,
+        theme: Blockly.Themes.Dark,
+        grid: {
+          spacing: 24,
+          length:  4,
+          colour:  '#2a2a2a',
+          snap:    true
+        },
+        trashcan:    true,
+        scrollbars:  true,
+        zoom: {
+          controls:   true,
+          wheel:      true,
+          startScale: 0.9,
+          maxScale:   3,
+          minScale:   0.3
+        }
+      });
+
+      // Pre-load the setup/loop container block
+      Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
+
+      // ── Code generation helper ───────────────────────────────────────────
+      function generateAndSend() {
+        try {
+          var code = ArduinoGenerator.workspaceToCode(workspace);
+          if (!code || code.trim() === '') {
+            code = '// Place blocks inside setup() or loop() to generate code.';
+          }
+          if (window.bridge) {
+            window.bridge.on_code_update(code);
+          }
+        } catch (err) {
+          console.error('Code generation error:', err);
+        }
+      }
+
+      // ── QWebChannel bridge setup ─────────────────────────────────────────
+      // qt.webChannelTransport is injected by PyQt6 before page scripts run.
+      // We retry in case there's a small race condition on startup.
+      function connectBridge(attempts) {
+        if (typeof QWebChannel === 'undefined' || typeof qt === 'undefined') {
+          if (attempts > 0) {
+            setTimeout(function () { connectBridge(attempts - 1); }, 150);
+          } else {
+            console.error('QWebChannel not available — bridge connection failed.');
+          }
+          return;
+        }
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+          window.bridge = channel.objects.bridge;
+          console.log('[SparkIDE] Python bridge connected.');
+          generateAndSend(); // emit current code immediately after connecting
+        });
+      }
+      connectBridge(10); // try up to 10 times (10 × 150ms = 1.5s max wait)
+
+      // ── Workspace change listener ────────────────────────────────────────
+      workspace.addChangeListener(function (event) {
+        // Skip purely visual events (scroll, zoom, UI click) to avoid spam
+        if (event.isUiEvent) return;
+        generateAndSend();
+      });
+
+      // ── Public API exposed for Python via page.runJavaScript() ──────────
+
+      window.loadWorkspace = function (jsonStr) {
+        try {
+          var state = JSON.parse(jsonStr);
+          Blockly.serialization.workspaces.load(state, workspace);
+        } catch (err) {
+          console.error('[SparkIDE] loadWorkspace error:', err);
+        }
+      };
+
+      window.getWorkspaceJson = function () {
+        return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
+      };
+
+      window.clearWorkspace = function () {
+        workspace.clear();
+        Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
+      };
+    });
+  </script>
+
 </body>
 </html>
