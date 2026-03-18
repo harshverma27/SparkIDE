@@ -1,94 +1,140 @@
 <!DOCTYPE html>
 <!--
-  blockly/index.html
-  Local HTML page hosting the Google Blockly editor.
-  Loaded inside a QWebEngineView in ui/main_window.py.
-
-  Script load order (order matters!):
-    1. qrc:///qtwebchannel/qwebchannel.js  — injected by Qt, provides QWebChannel class
-    2. blockly_compressed.js               — Blockly core (pinned to v10.4.3)
-    3. msg/en.js                           — English UI strings for Blockly
-    4. blocks/arduino_blocks.js            — Our custom block definitions
-    5. generators/arduino_generator.js     — Our C++ code generators
+  blockly/index.html — Local Blockly host page loaded inside QWebEngineView.
+  Script load order matters:
+    1. qrc:///qtwebchannel/qwebchannel.js  — Qt bridge
+    2. blockly_compressed.js + msg/en.js   — Blockly core
+    3. arduino_blocks.js                   — Custom block shapes
+    4. arduino_generator.js                — C++ generators
 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>SparkIDE Blockly</title>
 
-  <!-- Qt injects qwebchannel.js, accessible via this qrc URL -->
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-
-  <!-- Blockly v10 from CDN (requires LocalContentCanAccessRemoteUrls = True) -->
   <script src="https://unpkg.com/blockly@10.4.3/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly@10.4.3/blocks_compressed.js"></script>
   <script src="https://unpkg.com/blockly@10.4.3/msg/en.js"></script>
-
-  <!-- Our Arduino blocks and generators -->
   <script src="blocks/arduino_blocks.js"></script>
   <script src="generators/arduino_generator.js"></script>
 
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #1e1e1e;
-    }
-    #blocklyDiv {
-      width: 100%;
-      height: 100vh;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1e1e1e; }
+    #blocklyDiv { width: 100%; height: 100vh; }
   </style>
 </head>
 <body>
-
   <div id="blocklyDiv"></div>
 
   <script>
-    // ── Toolbox definition ─────────────────────────────────────────────────
+    // ── Toolbox ──────────────────────────────────────────────────────────────
     const TOOLBOX = {
       kind: 'categoryToolbox',
       contents: [
+
+        // ── Structure ────────────────────────────────────────────────────────
         {
-          kind: 'category',
-          name: '⚙  Structure',
-          colour: '120',
+          kind: 'category', name: '⚙  Structure', colour: '120',
           contents: [
             { kind: 'block', type: 'arduino_setup_loop' }
           ]
         },
+
+        // ── Digital I/O ──────────────────────────────────────────────────────
         {
-          kind: 'category',
-          name: '💡  Digital I/O',
-          colour: '210',
+          kind: 'category', name: '💡  Digital I/O', colour: '210',
           contents: [
             { kind: 'block', type: 'arduino_pinmode' },
             { kind: 'block', type: 'arduino_digitalwrite' },
+            // digitalRead is an expression block — plug it into Logic > if or Compare
             { kind: 'block', type: 'arduino_digitalread' }
           ]
         },
+
+        // ── Analog I/O ───────────────────────────────────────────────────────
         {
-          kind: 'category',
-          name: '⏱  Time',
-          colour: '30',
+          kind: 'category', name: '📈  Analog I/O', colour: '160',
           contents: [
-            { kind: 'block', type: 'arduino_delay' }
+            { kind: 'block', type: 'arduino_analogread' },
+            { kind: 'block', type: 'arduino_analogwrite' },
+            { kind: 'block', type: 'arduino_map' }
           ]
         },
+
+        // ── Time ─────────────────────────────────────────────────────────────
         {
-          kind: 'category',
-          name: '📦  Variables',
-          colour: '330',
+          kind: 'category', name: '⏱  Time', colour: '30',
           contents: [
+            { kind: 'block', type: 'arduino_delay' },
+            { kind: 'block', type: 'arduino_delay_microseconds' },
+            { kind: 'block', type: 'arduino_millis' }
+          ]
+        },
+
+        // ── Logic (Blockly built-ins with custom Arduino generators) ─────────
+        {
+          kind: 'category', name: '🔀  Logic', colour: '210',
+          contents: [
+            // if / if-else — drag digitalRead or analogRead into the condition socket
+            { kind: 'block', type: 'controls_if' },
+            // Comparison: ==, !=, <, <=, >, >=
+            {
+              kind: 'block', type: 'logic_compare',
+              fields: { OP: 'EQ' }
+            },
+            // AND / OR
+            { kind: 'block', type: 'logic_operation' },
+            // NOT
+            { kind: 'block', type: 'logic_negate' },
+            // true / false literal
+            { kind: 'block', type: 'logic_boolean' }
+          ]
+        },
+
+        // ── Loops (Blockly built-ins) ─────────────────────────────────────────
+        {
+          kind: 'category', name: '🔁  Loops', colour: '120',
+          contents: [
+            { kind: 'block', type: 'controls_whileUntil' },
+            {
+              kind: 'block', type: 'controls_for',
+              fields: { VAR: 'i' },
+              inputs: {
+                FROM: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
+                TO:   { shadow: { type: 'math_number', fields: { NUM: 9 } } },
+                BY:   { shadow: { type: 'math_number', fields: { NUM: 1 } } }
+              }
+            }
+          ]
+        },
+
+        // ── Math (Blockly built-ins) ──────────────────────────────────────────
+        {
+          kind: 'category', name: '🔢  Math', colour: '230',
+          contents: [
+            { kind: 'block', type: 'math_number' },
+            { kind: 'block', type: 'math_arithmetic' }
+          ]
+        },
+
+        // ── Variables ────────────────────────────────────────────────────────
+        {
+          kind: 'category', name: '📦  Variables', colour: '330',
+          contents: [
+            // Fixed literal: int name = 0;
             { kind: 'block', type: 'arduino_variable_int' },
+            // Expression socket: int name = [digitalRead / analogRead / math...]
+            { kind: 'block', type: 'arduino_variable_int_expr' },
+            // Reassign existing variable: name = [any block]
+            { kind: 'block', type: 'arduino_variable_assign' },
             { kind: 'block', type: 'arduino_variable_bool' }
           ]
         },
+
+        // ── Serial ───────────────────────────────────────────────────────────
         {
-          kind: 'category',
-          name: '📡  Serial',
-          colour: '270',
+          kind: 'category', name: '📡  Serial', colour: '270',
           contents: [
             { kind: 'block', type: 'arduino_serial_begin' },
             { kind: 'block', type: 'arduino_serial_print' },
@@ -98,44 +144,29 @@
       ]
     };
 
-    // ── Pre-built initial workspace: an empty arduino_setup_loop block ─────
+    // ── Initial workspace: pre-place the setup/loop container ────────────────
     const INITIAL_STATE = {
       blocks: {
         languageVersion: 0,
-        blocks: [
-          { type: 'arduino_setup_loop', x: 40, y: 40 }
-        ]
+        blocks: [{ type: 'arduino_setup_loop', x: 40, y: 40 }]
       }
     };
 
-    // ── Main application init ──────────────────────────────────────────────
+    // ── Main init ────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
 
-      // Inject Blockly into the div
       const workspace = Blockly.inject('blocklyDiv', {
         toolbox: TOOLBOX,
-        theme: Blockly.Themes.Dark,
-        grid: {
-          spacing: 24,
-          length:  4,
-          colour:  '#2a2a2a',
-          snap:    true
-        },
-        trashcan:    true,
-        scrollbars:  true,
-        zoom: {
-          controls:   true,
-          wheel:      true,
-          startScale: 0.9,
-          maxScale:   3,
-          minScale:   0.3
-        }
+        theme:   Blockly.Themes.Dark,
+        grid: { spacing: 24, length: 4, colour: '#2a2a2a', snap: true },
+        trashcan:   true,
+        scrollbars: true,
+        zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 3, minScale: 0.3 }
       });
 
-      // Pre-load the setup/loop container block
       Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
 
-      // ── Code generation helper ───────────────────────────────────────────
+      // ── Generate & send C++ to Python ────────────────────────────────────
       function generateAndSend() {
         try {
           var code = ArduinoGenerator.workspaceToCode(workspace);
@@ -146,58 +177,44 @@
             window.bridge.on_code_update(code);
           }
         } catch (err) {
-          console.error('Code generation error:', err);
+          console.error('[SparkIDE] Code generation error:', err);
         }
       }
 
-      // ── QWebChannel bridge setup ─────────────────────────────────────────
-      // qt.webChannelTransport is injected by PyQt6 before page scripts run.
-      // We retry in case there's a small race condition on startup.
+      // ── Connect QWebChannel bridge ───────────────────────────────────────
       function connectBridge(attempts) {
         if (typeof QWebChannel === 'undefined' || typeof qt === 'undefined') {
-          if (attempts > 0) {
-            setTimeout(function () { connectBridge(attempts - 1); }, 150);
-          } else {
-            console.error('QWebChannel not available — bridge connection failed.');
-          }
+          if (attempts > 0) setTimeout(function () { connectBridge(attempts - 1); }, 150);
+          else console.error('[SparkIDE] Bridge connection failed.');
           return;
         }
         new QWebChannel(qt.webChannelTransport, function (channel) {
           window.bridge = channel.objects.bridge;
           console.log('[SparkIDE] Python bridge connected.');
-          generateAndSend(); // emit current code immediately after connecting
+          generateAndSend();
         });
       }
-      connectBridge(10); // try up to 10 times (10 × 150ms = 1.5s max wait)
+      connectBridge(10);
 
-      // ── Workspace change listener ────────────────────────────────────────
+      // ── Workspace change → update code panel ────────────────────────────
       workspace.addChangeListener(function (event) {
-        // Skip purely visual events (scroll, zoom, UI click) to avoid spam
         if (event.isUiEvent) return;
         generateAndSend();
       });
 
-      // ── Public API exposed for Python via page.runJavaScript() ──────────
-
+      // ── Public API for Python (called via page.runJavaScript) ────────────
       window.loadWorkspace = function (jsonStr) {
-        try {
-          var state = JSON.parse(jsonStr);
-          Blockly.serialization.workspaces.load(state, workspace);
-        } catch (err) {
-          console.error('[SparkIDE] loadWorkspace error:', err);
-        }
+        try { Blockly.serialization.workspaces.load(JSON.parse(jsonStr), workspace); }
+        catch (e) { console.error('[SparkIDE] loadWorkspace error:', e); }
       };
-
       window.getWorkspaceJson = function () {
         return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
       };
-
       window.clearWorkspace = function () {
         workspace.clear();
         Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
       };
     });
   </script>
-
 </body>
 </html>

@@ -1,26 +1,29 @@
 /**
  * blockly/blocks/arduino_blocks.js
- * Custom Blockly block DEFINITIONS for all 10 core Arduino blocks.
+ * Custom Blockly block DEFINITIONS — all Arduino blocks.
+ * Built-in Blockly blocks (controls_if, logic_compare, math_number, etc.)
+ * are used as-is; only their generators need to be defined in arduino_generator.js.
  */
 
-// ── 1. arduino_setup_loop — main program container ──────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// STRUCTURE
+// ════════════════════════════════════════════════════════════════════════════
+
 Blockly.Blocks['arduino_setup_loop'] = {
   init: function () {
-    this.appendDummyInput()
-        .appendField('🔌  Arduino Program');
-    this.appendStatementInput('SETUP')
-        .setCheck(null)
-        .appendField('setup()');
-    this.appendStatementInput('LOOP')
-        .setCheck(null)
-        .appendField('loop()');
+    this.appendDummyInput().appendField('🔌  Arduino Program');
+    this.appendStatementInput('SETUP').setCheck(null).appendField('setup()');
+    this.appendStatementInput('LOOP').setCheck(null).appendField('loop()');
     this.setColour(120);
-    this.setTooltip('The main Arduino program. Place init code in setup(), repeated code in loop().');
+    this.setTooltip('Main program structure. setup() runs once; loop() repeats forever.');
     this.setDeletable(false);
   }
 };
 
-// ── 2. arduino_pinmode ───────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// DIGITAL I/O
+// ════════════════════════════════════════════════════════════════════════════
+
 Blockly.Blocks['arduino_pinmode'] = {
   init: function () {
     this.appendDummyInput()
@@ -28,19 +31,16 @@ Blockly.Blocks['arduino_pinmode'] = {
         .appendField(new Blockly.FieldNumber(13, 0, 53), 'PIN')
         .appendField(',')
         .appendField(new Blockly.FieldDropdown([
-          ['OUTPUT',       'OUTPUT'],
-          ['INPUT',        'INPUT'],
-          ['INPUT_PULLUP', 'INPUT_PULLUP'],
+          ['OUTPUT', 'OUTPUT'], ['INPUT', 'INPUT'], ['INPUT_PULLUP', 'INPUT_PULLUP'],
         ]), 'MODE')
         .appendField(')');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(210);
-    this.setTooltip('Set a pin as INPUT or OUTPUT.');
+    this.setTooltip('Set a digital pin as INPUT or OUTPUT.');
   }
 };
 
-// ── 3. arduino_digitalwrite ──────────────────────────────────────────────────
 Blockly.Blocks['arduino_digitalwrite'] = {
   init: function () {
     this.appendDummyInput()
@@ -48,8 +48,7 @@ Blockly.Blocks['arduino_digitalwrite'] = {
         .appendField(new Blockly.FieldNumber(13, 0, 53), 'PIN')
         .appendField(',')
         .appendField(new Blockly.FieldDropdown([
-          ['HIGH', 'HIGH'],
-          ['LOW',  'LOW'],
+          ['HIGH', 'HIGH'], ['LOW', 'LOW'],
         ]), 'VALUE')
         .appendField(')');
     this.setPreviousStatement(true, null);
@@ -59,20 +58,78 @@ Blockly.Blocks['arduino_digitalwrite'] = {
   }
 };
 
-// ── 4. arduino_digitalread ───────────────────────────────────────────────────
+// Expression block — plug this into an if-condition or compare block
 Blockly.Blocks['arduino_digitalread'] = {
   init: function () {
     this.appendDummyInput()
         .appendField('digitalRead(')
         .appendField(new Blockly.FieldNumber(2, 0, 53), 'PIN')
         .appendField(')');
-    this.setOutput(true, null);   // expression block — returns HIGH or LOW
+    this.setOutput(true, 'Number');
     this.setColour(210);
-    this.setTooltip('Read HIGH or LOW from a digital pin. Use inside an if block.');
+    this.setTooltip('Read HIGH or LOW from a digital pin. Plug into an "if" or compare block.');
   }
 };
 
-// ── 5. arduino_delay ─────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ANALOG I/O
+// ════════════════════════════════════════════════════════════════════════════
+
+// Expression block — returns 0-1023
+Blockly.Blocks['arduino_analogread'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('analogRead( A')
+        .appendField(new Blockly.FieldNumber(0, 0, 5), 'PIN')
+        .appendField(')');
+    this.setOutput(true, 'Number');
+    this.setColour(160);
+    this.setTooltip('Read analog voltage on A0–A5. Returns 0 (0V) to 1023 (5V).');
+  }
+};
+
+// Statement block — PWM output, value socket accepts any expression (e.g. map(), variable)
+Blockly.Blocks['arduino_analogwrite'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('analogWrite( pin')
+        .appendField(new Blockly.FieldNumber(9, 0, 53), 'PIN')
+        .appendField(', value');
+    this.appendValueInput('VALUE')
+        .setCheck('Number');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(160);
+    this.setTooltip('Write a PWM value (0–255) to a PWM-capable pin. Plug in math/map/variable blocks.');
+  }
+};
+
+// Expression block — maps a value from one range to another
+Blockly.Blocks['arduino_map'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('map(')
+        .appendField(new Blockly.FieldNumber(0), 'VAL')
+        .appendField(', from [')
+        .appendField(new Blockly.FieldNumber(0), 'FROM_LOW')
+        .appendField('–')
+        .appendField(new Blockly.FieldNumber(1023), 'FROM_HIGH')
+        .appendField('] to [')
+        .appendField(new Blockly.FieldNumber(0), 'TO_LOW')
+        .appendField('–')
+        .appendField(new Blockly.FieldNumber(255), 'TO_HIGH')
+        .appendField('])');
+    this.setOutput(true, 'Number');
+    this.setColour(160);
+    this.setTooltip('Re-maps a number from one range to another. e.g. analogRead → PWM range.');
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// TIME
+// ════════════════════════════════════════════════════════════════════════════
+
 Blockly.Blocks['arduino_delay'] = {
   init: function () {
     this.appendDummyInput()
@@ -82,11 +139,38 @@ Blockly.Blocks['arduino_delay'] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(30);
-    this.setTooltip('Pause the program for the given number of milliseconds.');
+    this.setTooltip('Pause the program for N milliseconds.');
   }
 };
 
-// ── 6. arduino_variable_int ──────────────────────────────────────────────────
+Blockly.Blocks['arduino_delay_microseconds'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('delayMicroseconds(')
+        .appendField(new Blockly.FieldNumber(100, 0), 'US')
+        .appendField('µs)');
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setTooltip('Pause for N microseconds (useful for precise timing).');
+  }
+};
+
+// Expression block — returns milliseconds since board started
+Blockly.Blocks['arduino_millis'] = {
+  init: function () {
+    this.appendDummyInput().appendField('millis()');
+    this.setOutput(true, 'Number');
+    this.setColour(30);
+    this.setTooltip('Returns the number of milliseconds since the board started.');
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// VARIABLES
+// ════════════════════════════════════════════════════════════════════════════
+
+// Fixed-value declaration: int name = 0;
 Blockly.Blocks['arduino_variable_int'] = {
   init: function () {
     this.appendDummyInput()
@@ -97,11 +181,45 @@ Blockly.Blocks['arduino_variable_int'] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(330);
-    this.setTooltip('Declare an integer variable.');
+    this.setTooltip('Declare an integer variable with a fixed number.');
   }
 };
 
-// ── 7. arduino_variable_bool ─────────────────────────────────────────────────
+// Expression-socket declaration: int name = [any block]
+// Use this to assign digitalRead(), analogRead(), millis(), etc.
+Blockly.Blocks['arduino_variable_int_expr'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('int')
+        .appendField(new Blockly.FieldTextInput('myVar'), 'NAME')
+        .appendField('=');
+    this.appendValueInput('VALUE')
+        .setCheck('Number');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(330);
+    this.setTooltip('Declare an int and assign any expression block (e.g. digitalRead, analogRead, math).');
+  }
+};
+
+// Reassignment: name = [any block]   (no type keyword — variable already declared)
+Blockly.Blocks['arduino_variable_assign'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldTextInput('myVar'), 'NAME')
+        .appendField('=');
+    this.appendValueInput('VALUE')
+        .setCheck(null);
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(330);
+    this.setTooltip('Assign a new value to an already-declared variable.');
+  }
+};
+
+// Fixed-value bool declaration
 Blockly.Blocks['arduino_variable_bool'] = {
   init: function () {
     this.appendDummyInput()
@@ -109,36 +227,34 @@ Blockly.Blocks['arduino_variable_bool'] = {
         .appendField(new Blockly.FieldTextInput('myFlag'), 'NAME')
         .appendField('=')
         .appendField(new Blockly.FieldDropdown([
-          ['false', 'false'],
-          ['true',  'true'],
+          ['false', 'false'], ['true', 'true'],
         ]), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(330);
-    this.setTooltip('Declare a boolean variable (true or false).');
+    this.setTooltip('Declare a boolean variable (true/false).');
   }
 };
 
-// ── 8. arduino_serial_begin ──────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// SERIAL
+// ════════════════════════════════════════════════════════════════════════════
+
 Blockly.Blocks['arduino_serial_begin'] = {
   init: function () {
     this.appendDummyInput()
         .appendField('Serial.begin(')
         .appendField(new Blockly.FieldDropdown([
-          ['9600',   '9600'],
-          ['115200', '115200'],
-          ['57600',  '57600'],
-          ['38400',  '38400'],
+          ['9600', '9600'], ['115200', '115200'], ['57600', '57600'], ['38400', '38400'],
         ]), 'BAUD')
         .appendField(')');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(270);
-    this.setTooltip('Initialize serial communication at the given baud rate.');
+    this.setTooltip('Initialize serial communication. Call once in setup().');
   }
 };
 
-// ── 9. arduino_serial_print ──────────────────────────────────────────────────
 Blockly.Blocks['arduino_serial_print'] = {
   init: function () {
     this.appendDummyInput()
@@ -148,11 +264,10 @@ Blockly.Blocks['arduino_serial_print'] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(270);
-    this.setTooltip('Print a value to the Serial Monitor (no newline).');
+    this.setTooltip('Print text to the Serial Monitor (no newline).');
   }
 };
 
-// ── 10. arduino_serial_println ───────────────────────────────────────────────
 Blockly.Blocks['arduino_serial_println'] = {
   init: function () {
     this.appendDummyInput()
@@ -162,6 +277,6 @@ Blockly.Blocks['arduino_serial_println'] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(270);
-    this.setTooltip('Print a value to the Serial Monitor followed by a newline.');
+    this.setTooltip('Print text to the Serial Monitor followed by a newline.');
   }
 };
