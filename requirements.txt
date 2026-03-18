@@ -1,0 +1,11 @@
+# SparkIDE Python dependencies
+# Install with:  pip install -r requirements.txt
+
+# Core UI framework
+PyQt6
+
+# Provides QWebEngineView (to embed Blockly HTML) and QWebChannel (Python <-> JS bridge)
+PyQt6-WebEngine
+
+# --- v0.2 dependencies (not needed for v0.1) ---
+# pyserial    # Serial monitor: read Serial.print() output from the board
