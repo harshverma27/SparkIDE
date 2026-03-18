@@ -1,28 +1,72 @@
 """
 main.py — SparkIDE application entry point.
-
-What to do here:
-  1. Import QApplication from PyQt6.QtWidgets.
-  2. Import MainWindow from ui.main_window.
-  3. Create a QApplication instance (pass sys.argv).
-  4. Instantiate MainWindow and call .show() on it.
-  5. Call sys.exit(app.exec()) to start the Qt event loop.
-
-Notes:
-  - On some Linux systems you may need to set the Qt platform plugin:
-      os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
-  - HiDPI: add QApplication.setHighDpiScaleFactorRoundingPolicy(...)
-    before creating the app for crisp rendering on HiDPI displays.
 """
 
 import sys
+import os
 
-# TODO: from PyQt6.QtWidgets import QApplication
-# TODO: from ui.main_window import MainWindow
+# Use the xcb platform plugin on Linux (most common Wayland / X11 setup)
+os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
-def main():
-    # TODO: Create QApplication, show MainWindow, start event loop
-    pass
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QPalette, QColor, QFont
+from PyQt6.QtCore import Qt
+
+from ui.main_window import MainWindow
+
+
+def _apply_dark_theme(app: QApplication) -> None:
+    """Apply a dark Fusion palette to the whole application."""
+    app.setStyle("Fusion")
+
+    palette = QPalette()
+
+    # Window chrome
+    palette.setColor(QPalette.ColorRole.Window,          QColor("#1e1e1e"))
+    palette.setColor(QPalette.ColorRole.WindowText,      QColor("#d4d4d4"))
+
+    # Widgets
+    palette.setColor(QPalette.ColorRole.Base,            QColor("#252526"))
+    palette.setColor(QPalette.ColorRole.AlternateBase,   QColor("#2d2d30"))
+    palette.setColor(QPalette.ColorRole.Text,            QColor("#d4d4d4"))
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#6a6a6a"))
+
+    # Buttons
+    palette.setColor(QPalette.ColorRole.Button,          QColor("#2a2a2a"))
+    palette.setColor(QPalette.ColorRole.ButtonText,      QColor("#d4d4d4"))
+
+    # Highlights / selections
+    palette.setColor(QPalette.ColorRole.Highlight,       QColor("#264f78"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
+
+    # Tooltips
+    palette.setColor(QPalette.ColorRole.ToolTipBase,     QColor("#2a2a2a"))
+    palette.setColor(QPalette.ColorRole.ToolTipText,     QColor("#d4d4d4"))
+
+    # Borders / lines
+    palette.setColor(QPalette.ColorRole.Mid,             QColor("#3a3a3a"))
+    palette.setColor(QPalette.ColorRole.Dark,            QColor("#141414"))
+    palette.setColor(QPalette.ColorRole.Shadow,          QColor("#0a0a0a"))
+
+    app.setPalette(palette)
+
+    # Global font
+    app.setFont(QFont("Inter", 11))
+
+
+def main() -> None:
+    app = QApplication(sys.argv)
+    app.setApplicationName("SparkIDE")
+    app.setApplicationVersion("0.1.0")
+    app.setOrganizationName("SparkIDE")
+
+    _apply_dark_theme(app)
+
+    window = MainWindow()
+    window.show()
+
+    sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
