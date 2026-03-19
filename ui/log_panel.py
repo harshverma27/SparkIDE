@@ -2,20 +2,27 @@
 ui/log_panel.py — Build log / output panel (docked at the bottom of the window).
 """
 
+from datetime import datetime
+
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QPushButton, QLabel
 from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
 from PyQt6.QtCore import Qt
 
 
-WELCOME_TEXT = "SparkIDE v0.1 — Ready.\nConnect an Arduino board and click Compile."
+WELCOME_TEXT = "SparkIDE v0.1 — Ready.  Connect an Arduino board and click Compile."
 
-# Colour palette
+# Colour palette — One Dark tones
 _COLOURS = {
-    "info":    "#d4d4d4",  # light grey
+    "info":    "#abb2bf",  # soft white
     "warning": "#e5c07b",  # amber
     "error":   "#e06c75",  # soft red
     "success": "#98c379",  # soft green
+    "dim":     "#4b5263",  # muted / timestamps
 }
+
+BG_PANEL  = "#111111"
+BG_HEADER = "#141414"
+BORDER    = "#2e2e2e"
 
 
 class LogPanel(QWidget):
@@ -24,7 +31,7 @@ class LogPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._build_ui()
-        self.append_line(WELCOME_TEXT, level="info")
+        self.append_line(WELCOME_TEXT, level="success")
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -33,67 +40,98 @@ class LogPanel(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # Header bar
+        # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
-        header.setFixedHeight(28)
-        header.setStyleSheet("background:#1a1a1a; border-bottom: 1px solid #3a3a3a;")
-        h_layout = QHBoxLayout(header)
-        h_layout.setContentsMargins(8, 0, 8, 0)
+        header.setFixedHeight(30)
+        header.setStyleSheet(
+            f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};"
+        )
+        hl = QHBoxLayout(header)
+        hl.setContentsMargins(10, 0, 8, 0)
 
-        title = QLabel("Output")
-        title.setStyleSheet("color:#888; font-size:11px; font-weight:600; letter-spacing:1px;")
-        h_layout.addWidget(title)
-        h_layout.addStretch()
+        title = QLabel("⬛  Output")
+        title.setStyleSheet(
+            "color: #888; font-size: 11px; font-weight: 600; letter-spacing: 0.4px;"
+        )
+        hl.addWidget(title)
+        hl.addStretch()
 
-        clear_btn = QPushButton("Clear")
-        clear_btn.setFixedSize(52, 20)
+        # Timestamps toggle label (cosmetic for now)
+        ts_label = QLabel("timestamps on")
+        ts_label.setStyleSheet("color: #3a3a3a; font-size: 10px; margin-right: 10px;")
+        hl.addWidget(ts_label)
+
+        clear_btn = QPushButton("✕ Clear")
+        clear_btn.setFixedSize(60, 20)
         clear_btn.setStyleSheet(
-            "QPushButton { background:#2a2a2a; color:#888; border:1px solid #3a3a3a;"
-            " border-radius:3px; font-size:10px; }"
-            "QPushButton:hover { background:#333; color:#ccc; }"
+            "QPushButton { background: #1e1e1e; color: #666; border: 1px solid #2a2a2a;"
+            " border-radius: 4px; font-size: 10px; }"
+            "QPushButton:hover { background: #2a2a2a; color: #e06c75; border-color: #e06c75; }"
+            "QPushButton:pressed { background: #1a1a1a; }"
         )
         clear_btn.clicked.connect(self.clear)
-        h_layout.addWidget(clear_btn)
+        hl.addWidget(clear_btn)
 
         root.addWidget(header)
 
-        # Text area
+        # ── Text area ────────────────────────────────────────────────────────
         self._editor = QPlainTextEdit()
         self._editor.setReadOnly(True)
-        self._editor.setFont(QFont("Monospace", 10))
+
+        # Font: try nice monospace, fall back gracefully
+        font = QFont("Fira Code", 10)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        if not font.exactMatch():
+            font = QFont("JetBrains Mono", 10)
+            font.setStyleHint(QFont.StyleHint.Monospace)
+        self._editor.setFont(font)
+
         self._editor.setStyleSheet(
-            "QPlainTextEdit {"
-            "  background: #111;"
-            "  color: #d4d4d4;"
-            "  border: none;"
-            "  padding: 6px 10px;"
-            "}"
+            f"QPlainTextEdit {{"
+            f"  background: {BG_PANEL};"
+            f"  color: #abb2bf;"
+            f"  border: none;"
+            f"  padding: 6px 12px;"
+            f"}}"
+            f"QScrollBar:vertical {{"
+            f"  background: {BG_PANEL}; width: 6px; border: none;"
+            f"}}"
+            f"QScrollBar::handle:vertical {{"
+            f"  background: #2a2a2a; border-radius: 3px;"
+            f"}}"
+            f"QScrollBar::handle:vertical:hover {{ background: #444; }}"
+            f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}"
         )
-        # Limit scrollback to 500 lines for performance
-        self._editor.setMaximumBlockCount(500)
+        self._editor.setMaximumBlockCount(1000)
         root.addWidget(self._editor)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     def append_line(self, text: str, level: str = "info") -> None:
-        """Append a line to the log in the appropriate colour."""
+        """Append a timestamped, colour-coded line to the log."""
         colour = _COLOURS.get(level, _COLOURS["info"])
-
-        fmt = QTextCharFormat()
-        fmt.setForeground(QColor(colour))
+        ts = datetime.now().strftime("%H:%M:%S")
 
         cursor = self._editor.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
 
-        # Insert a newline before new content if the log isn't empty
-        if not self._editor.toPlainText() == "":
+        # Newline separator (skip on first line)
+        if self._editor.toPlainText():
             cursor.insertText("\n")
 
-        cursor.setCharFormat(fmt)
-        cursor.insertText(text)
-        self._editor.setTextCursor(cursor)
+        # Timestamp in dim colour
+        ts_fmt = QTextCharFormat()
+        ts_fmt.setForeground(QColor(_COLOURS["dim"]))
+        cursor.setCharFormat(ts_fmt)
+        cursor.insertText(f"[{ts}]  ")
 
-        # Auto-scroll to bottom
+        # Message in level colour
+        msg_fmt = QTextCharFormat()
+        msg_fmt.setForeground(QColor(colour))
+        cursor.setCharFormat(msg_fmt)
+        cursor.insertText(text)
+
+        self._editor.setTextCursor(cursor)
         self._editor.verticalScrollBar().setValue(
             self._editor.verticalScrollBar().maximum()
         )
