@@ -320,6 +320,11 @@ ArduinoGenerator.forBlock['arduino_variable_string'] = function (block, generato
   return 'String ' + name + ' = "' + value + '";\n';
 };
 
+ArduinoGenerator.forBlock['arduino_variable_get'] = function (block, generator) {
+  var name = block.getFieldValue('NAME');
+  return [name, ArduinoGenerator.ORDER_ATOMIC];
+};
+
 ArduinoGenerator.forBlock['arduino_variable_compound'] = function (block, generator) {
   var name  = block.getFieldValue('NAME');
   var op    = block.getFieldValue('OP');

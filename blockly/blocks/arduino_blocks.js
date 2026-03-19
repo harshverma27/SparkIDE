@@ -415,6 +415,18 @@ Blockly.Blocks['arduino_variable_string'] = {
   }
 };
 
+// Variable value reader — expression
+Blockly.Blocks['arduino_variable_get'] = {
+  init: function () {
+    this.appendDummyInput()
+        .appendField('Value of variable')
+        .appendField(new Blockly.FieldTextInput('myNumber'), 'NAME');
+    this.setOutput(true, null);
+    this.setColour(330);
+    this.setTooltip('Reads the current value of a variable. Plug this into math, logic, or other blocks.');
+  }
+};
+
 // Compound assignment: +=, -=, *=, /=, reset to 0
 Blockly.Blocks['arduino_variable_compound'] = {
   init: function () {
