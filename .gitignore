@@ -18,3 +18,7 @@ build/
 .vscode/
 .idea/
 *.swp
+
+
+# Project Specific
+operations.txt

@@ -33,7 +33,7 @@
       kind: 'categoryToolbox',
       contents: [
 
-        // ── Structure ────────────────────────────────────────────────────────
+        // ── Structure ──────────────────────────────────────────────────────
         {
           kind: 'category', name: '⚙  Structure', colour: '120',
           contents: [
@@ -41,58 +41,56 @@
           ]
         },
 
-        // ── Digital I/O ──────────────────────────────────────────────────────
+        // ── Digital I/O ────────────────────────────────────────────────────
         {
           kind: 'category', name: '💡  Digital I/O', colour: '210',
           contents: [
             { kind: 'block', type: 'arduino_pinmode' },
             { kind: 'block', type: 'arduino_digitalwrite' },
-            // digitalRead is an expression block — plug it into Logic > if or Compare
-            { kind: 'block', type: 'arduino_digitalread' }
+            { kind: 'block', type: 'arduino_digitalread' },   // expression — plug into if/compare
+            { kind: 'block', type: 'arduino_pin_toggle' },
+            { kind: 'separator' },
+            { kind: 'block', type: 'arduino_led_blink' },
+            { kind: 'separator' },
+            { kind: 'block', type: 'arduino_button_pressed' } // expression — use in if/while
           ]
         },
 
-        // ── Analog I/O ───────────────────────────────────────────────────────
+        // ── Analog I/O ─────────────────────────────────────────────────────
         {
           kind: 'category', name: '📈  Analog I/O', colour: '160',
           contents: [
             { kind: 'block', type: 'arduino_analogread' },
             { kind: 'block', type: 'arduino_analogwrite' },
-            { kind: 'block', type: 'arduino_map' }
+            { kind: 'block', type: 'arduino_map' },
+            { kind: 'block', type: 'arduino_constrain' }
           ]
         },
 
-        // ── Time ─────────────────────────────────────────────────────────────
+        // ── Time ───────────────────────────────────────────────────────────
         {
           kind: 'category', name: '⏱  Time', colour: '30',
           contents: [
             { kind: 'block', type: 'arduino_delay' },
             { kind: 'block', type: 'arduino_delay_microseconds' },
-            { kind: 'block', type: 'arduino_millis' }
+            { kind: 'block', type: 'arduino_millis' },
+            { kind: 'block', type: 'arduino_micros' }
           ]
         },
 
-        // ── Logic (Blockly built-ins with custom Arduino generators) ─────────
+        // ── Logic ──────────────────────────────────────────────────────────
         {
           kind: 'category', name: '🔀  Logic', colour: '210',
           contents: [
-            // if / if-else — drag digitalRead or analogRead into the condition socket
             { kind: 'block', type: 'controls_if' },
-            // Comparison: ==, !=, <, <=, >, >=
-            {
-              kind: 'block', type: 'logic_compare',
-              fields: { OP: 'EQ' }
-            },
-            // AND / OR
+            { kind: 'block', type: 'logic_compare', fields: { OP: 'EQ' } },
             { kind: 'block', type: 'logic_operation' },
-            // NOT
             { kind: 'block', type: 'logic_negate' },
-            // true / false literal
             { kind: 'block', type: 'logic_boolean' }
           ]
         },
 
-        // ── Loops (Blockly built-ins) ─────────────────────────────────────────
+        // ── Loops ──────────────────────────────────────────────────────────
         {
           kind: 'category', name: '🔁  Loops', colour: '120',
           contents: [
@@ -105,44 +103,72 @@
                 TO:   { shadow: { type: 'math_number', fields: { NUM: 9 } } },
                 BY:   { shadow: { type: 'math_number', fields: { NUM: 1 } } }
               }
-            }
+            },
+            { kind: 'block', type: 'arduino_do_while' },
+            { kind: 'separator' },
+            { kind: 'block', type: 'arduino_break' },
+            { kind: 'block', type: 'arduino_continue' }
           ]
         },
 
-        // ── Math (Blockly built-ins) ──────────────────────────────────────────
+        // ── Math ───────────────────────────────────────────────────────────
         {
           kind: 'category', name: '🔢  Math', colour: '230',
           contents: [
             { kind: 'block', type: 'math_number' },
-            { kind: 'block', type: 'math_arithmetic' }
+            { kind: 'block', type: 'math_arithmetic' },
+            { kind: 'block', type: 'arduino_math_modulo' },
+            { kind: 'separator' },
+            { kind: 'block', type: 'arduino_math_abs' },
+            { kind: 'block', type: 'arduino_math_sqrt' },
+            { kind: 'block', type: 'arduino_math_pow' },
+            { kind: 'block', type: 'arduino_math_round' },
+            { kind: 'separator' },
+            { kind: 'block', type: 'arduino_math_random' },
+            { kind: 'block', type: 'arduino_math_min' },
+            { kind: 'block', type: 'arduino_math_max' }
           ]
         },
 
-        // ── Variables ────────────────────────────────────────────────────────
+        // ── Variables ──────────────────────────────────────────────────────
         {
           kind: 'category', name: '📦  Variables', colour: '330',
           contents: [
-            // Fixed literal: int name = 0;
+            // Declarations
             { kind: 'block', type: 'arduino_variable_int' },
-            // Expression socket: int name = [digitalRead / analogRead / math...]
             { kind: 'block', type: 'arduino_variable_int_expr' },
-            // Reassign existing variable: name = [any block]
+            { kind: 'block', type: 'arduino_variable_float' },
+            { kind: 'block', type: 'arduino_variable_bool' },
+            { kind: 'block', type: 'arduino_variable_string' },
+            { kind: 'separator' },
+            // Assignment / compound
             { kind: 'block', type: 'arduino_variable_assign' },
-            { kind: 'block', type: 'arduino_variable_bool' }
+            { kind: 'block', type: 'arduino_variable_compound' }
           ]
         },
 
-        // ── Serial ───────────────────────────────────────────────────────────
+        // ── Serial ─────────────────────────────────────────────────────────
         {
           kind: 'category', name: '📡  Serial', colour: '270',
           contents: [
             { kind: 'block', type: 'arduino_serial_begin' },
+            { kind: 'separator' },
+            // Print string literal
             { kind: 'block', type: 'arduino_serial_print' },
-            { kind: 'block', type: 'arduino_serial_println' }
+            { kind: 'block', type: 'arduino_serial_println' },
+            // Print any expression block (variable, sensor, calculation)
+            { kind: 'block', type: 'arduino_serial_print_expr' },
+            { kind: 'block', type: 'arduino_serial_println_expr' },
+            { kind: 'separator' },
+            // Read from serial
+            { kind: 'block', type: 'arduino_serial_available' },
+            { kind: 'block', type: 'arduino_serial_read' },
+            { kind: 'block', type: 'arduino_serial_flush' }
           ]
         }
       ]
     };
+
 
     // ── Initial workspace: pre-place the setup/loop container ────────────────
     const INITIAL_STATE = {

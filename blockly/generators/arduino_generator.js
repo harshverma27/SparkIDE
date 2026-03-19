@@ -247,7 +247,7 @@ ArduinoGenerator.forBlock['math_arithmetic'] = function (block, generator) {
     MINUS:    ['-', ArduinoGenerator.ORDER_SUBTRACTION],
     MULTIPLY: ['*', ArduinoGenerator.ORDER_MULTIPLICATION],
     DIVIDE:   ['/', ArduinoGenerator.ORDER_DIVISION],
-    POWER:    ['**', ArduinoGenerator.ORDER_NONE],  // no ** in C++ but placeholder
+    POWER:    ['**', ArduinoGenerator.ORDER_NONE],
   };
   var tuple = OPS[block.getFieldValue('OP')];
   var op    = tuple[0];
@@ -256,3 +256,179 @@ ArduinoGenerator.forBlock['math_arithmetic'] = function (block, generator) {
   var b     = generator.valueToCode(block, 'B', order) || '0';
   return [a + ' ' + op + ' ' + b, order];
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+// SERIAL — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_serial_print_expr'] = function (block, generator) {
+  var value = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+  return 'Serial.print(' + value + ');\n';
+};
+
+ArduinoGenerator.forBlock['arduino_serial_println_expr'] = function (block, generator) {
+  var value = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+  return 'Serial.println(' + value + ');\n';
+};
+
+ArduinoGenerator.forBlock['arduino_serial_available'] = function (block, generator) {
+  return ['Serial.available()', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_serial_read'] = function (block, generator) {
+  return ['Serial.read()', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_serial_flush'] = function (block, generator) {
+  return 'Serial.flush();\n';
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// DIGITAL I/O — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+// Toggle uses digitalRead then digitalWrite with the inverted value
+ArduinoGenerator.forBlock['arduino_pin_toggle'] = function (block, generator) {
+  var pin = block.getFieldValue('PIN');
+  return 'digitalWrite(' + pin + ', !digitalRead(' + pin + '));\n';
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// ANALOG I/O — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_constrain'] = function (block, generator) {
+  var val = generator.valueToCode(block, 'VAL', ArduinoGenerator.ORDER_NONE) || '0';
+  var min = generator.valueToCode(block, 'MIN', ArduinoGenerator.ORDER_NONE) || '0';
+  var max = generator.valueToCode(block, 'MAX', ArduinoGenerator.ORDER_NONE) || '255';
+  return ['constrain(' + val + ', ' + min + ', ' + max + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// VARIABLES — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_variable_float'] = function (block, generator) {
+  var name  = block.getFieldValue('NAME');
+  var value = block.getFieldValue('VALUE');
+  return 'float ' + name + ' = ' + value + ';\n';
+};
+
+ArduinoGenerator.forBlock['arduino_variable_string'] = function (block, generator) {
+  var name  = block.getFieldValue('NAME');
+  var value = block.getFieldValue('VALUE');
+  return 'String ' + name + ' = "' + value + '";\n';
+};
+
+ArduinoGenerator.forBlock['arduino_variable_compound'] = function (block, generator) {
+  var name  = block.getFieldValue('NAME');
+  var op    = block.getFieldValue('OP');
+  var value = block.getFieldValue('VALUE');
+  if (op === '= 0') return name + ' = 0;\n';
+  return name + ' ' + op + ' ' + value + ';\n';
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// MATH — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_math_modulo'] = function (block, generator) {
+  var a = generator.valueToCode(block, 'A', ArduinoGenerator.ORDER_MODULUS) || '0';
+  var b = generator.valueToCode(block, 'B', ArduinoGenerator.ORDER_MODULUS) || '1';
+  return [a + ' % ' + b, ArduinoGenerator.ORDER_MODULUS];
+};
+
+ArduinoGenerator.forBlock['arduino_math_abs'] = function (block, generator) {
+  var val = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+  return ['abs(' + val + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_sqrt'] = function (block, generator) {
+  var val = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+  return ['sqrt(' + val + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_pow'] = function (block, generator) {
+  var base = generator.valueToCode(block, 'BASE', ArduinoGenerator.ORDER_NONE) || '0';
+  var exp  = generator.valueToCode(block, 'EXP',  ArduinoGenerator.ORDER_NONE) || '2';
+  return ['pow(' + base + ', ' + exp + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_random'] = function (block, generator) {
+  var min = block.getFieldValue('MIN');
+  var max = block.getFieldValue('MAX');
+  return ['random(' + min + ', ' + max + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_round'] = function (block, generator) {
+  var val = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+  return ['round(' + val + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_min'] = function (block, generator) {
+  var a = generator.valueToCode(block, 'A', ArduinoGenerator.ORDER_NONE) || '0';
+  var b = generator.valueToCode(block, 'B', ArduinoGenerator.ORDER_NONE) || '0';
+  return ['min(' + a + ', ' + b + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['arduino_math_max'] = function (block, generator) {
+  var a = generator.valueToCode(block, 'A', ArduinoGenerator.ORDER_NONE) || '0';
+  var b = generator.valueToCode(block, 'B', ArduinoGenerator.ORDER_NONE) || '0';
+  return ['max(' + a + ', ' + b + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// LOOPS — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_break'] = function (block, generator) {
+  return 'break;\n';
+};
+
+ArduinoGenerator.forBlock['arduino_continue'] = function (block, generator) {
+  return 'continue;\n';
+};
+
+ArduinoGenerator.forBlock['arduino_do_while'] = function (block, generator) {
+  var branch    = generator.statementToCode(block, 'DO');
+  var condition = generator.valueToCode(block, 'CONDITION', ArduinoGenerator.ORDER_NONE) || 'false';
+  return 'do {\n' + branch + '} while (' + condition + ');\n';
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// TIME — EXTRA
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['arduino_micros'] = function (block, generator) {
+  return ['micros()', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// LED HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+
+// Expands to a for-loop that blinks the LED N times
+ArduinoGenerator.forBlock['arduino_led_blink'] = function (block, generator) {
+  var pin   = block.getFieldValue('PIN');
+  var times = block.getFieldValue('TIMES');
+  var ms    = block.getFieldValue('MS');
+  return (
+    'for (int _i = 0; _i < ' + times + '; _i++) {\n' +
+    '  digitalWrite(' + pin + ', HIGH);\n' +
+    '  delay(' + ms + ');\n' +
+    '  digitalWrite(' + pin + ', LOW);\n' +
+    '  delay(' + ms + ');\n' +
+    '}\n'
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// BUTTON & INPUT HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+
+// Active-LOW button: LOW means pressed when using INPUT_PULLUP
+ArduinoGenerator.forBlock['arduino_button_pressed'] = function (block, generator) {
+  var pin = block.getFieldValue('PIN');
+  return ['(digitalRead(' + pin + ') == LOW)', ArduinoGenerator.ORDER_EQUALITY];
+};
+
