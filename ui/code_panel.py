@@ -26,10 +26,10 @@ void loop() {
 }
 """
 
-BG_EDITOR = "#1a1a1a"
-BG_GUTTER = "#151515"
-BG_HEADER = "#141414"
-COL_BORDER = "#2e2e2e"
+BG_EDITOR = "#0f1728"
+BG_GUTTER = "#0c1322"
+BG_HEADER = "#101a2c"
+COL_BORDER = "#263246"
 
 
 class CppHighlighter(QSyntaxHighlighter):
@@ -115,43 +115,42 @@ class CodePanel(QWidget):
 
         # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
-        header.setFixedHeight(34)
+        header.setFixedHeight(44)
         header.setStyleSheet(
             f"background: {BG_HEADER};"
             f"border-bottom: 1px solid {COL_BORDER};"
         )
         hl = QHBoxLayout(header)
-        hl.setContentsMargins(12, 0, 8, 0)
+        hl.setContentsMargins(14, 0, 10, 0)
 
-        # File-tab style title chip
-        title_chip = QLabel("  C++ Preview  ")
+        title_chip = QLabel("Generated Sketch")
         title_chip.setStyleSheet(
-            "background: #1e1e1e; color: #abb2bf;"
-            "font-size: 11px; font-weight: 600;"
-            "border-radius: 4px 4px 0 0;"
-            "padding: 2px 8px; letter-spacing: 0.4px;"
+            "background: #18253a; color: #eef3ff;"
+            "font-size: 11px; font-weight: 700;"
+            "border-radius: 9px;"
+            "padding: 5px 10px; letter-spacing: 0.4px;"
         )
         hl.addWidget(title_chip)
 
-        # Live indicator dot
-        self._live_dot = QLabel("● live")
-        self._live_dot.setStyleSheet("color: #4e9a51; font-size: 10px; margin-left: 6px;")
+        self._live_dot = QLabel("Live sync")
+        self._live_dot.setStyleSheet(
+            "color: #7bd8aa; font-size: 10px; margin-left: 8px; font-weight: 600;"
+        )
         hl.addWidget(self._live_dot)
         hl.addStretch()
 
-        # Line counter label
         self._line_count = QLabel("0 lines")
-        self._line_count.setStyleSheet("color: #555; font-size: 10px; margin-right: 8px;")
+        self._line_count.setStyleSheet("color: #7e8aa5; font-size: 10px; margin-right: 10px;")
         hl.addWidget(self._line_count)
 
         # Copy button
-        copy_btn = QPushButton("⎘ Copy")
-        copy_btn.setFixedSize(62, 22)
+        copy_btn = QPushButton("Copy")
+        copy_btn.setFixedSize(64, 26)
         copy_btn.setStyleSheet(
-            "QPushButton { background: #252525; color: #888; border: 1px solid #333;"
-            " border-radius: 4px; font-size: 10px; }"
-            "QPushButton:hover { background: #2e2e2e; color: #ccc; }"
-            "QPushButton:pressed { background: #1a1a1a; }"
+            "QPushButton { background: #18253a; color: #b2bdd2; border: 1px solid #2a3b57;"
+            " border-radius: 8px; font-size: 10px; font-weight: 600; }"
+            "QPushButton:hover { background: #21304a; color: #eef3ff; }"
+            "QPushButton:pressed { background: #142034; }"
         )
         copy_btn.clicked.connect(self._copy_to_clipboard)
         hl.addWidget(copy_btn)
@@ -170,19 +169,18 @@ class CodePanel(QWidget):
         self._editor.setStyleSheet(
             f"QPlainTextEdit {{"
             f"  background: {BG_EDITOR};"
-            f"  color: #abb2bf;"
+            f"  color: #d5def0;"
             f"  border: none;"
-            f"  padding: 10px 14px;"
-            f"  selection-background-color: #3e4451;"
-            f"  line-height: 1.5;"
+            f"  padding: 14px 16px;"
+            f"  selection-background-color: #29446f;"
             f"}}"
             f"QScrollBar:vertical {{"
-            f"  background: {BG_EDITOR}; width: 8px; border: none;"
+            f"  background: {BG_EDITOR}; width: 10px; border: none;"
             f"}}"
             f"QScrollBar::handle:vertical {{"
-            f"  background: #333; border-radius: 4px; min-height: 20px;"
+            f"  background: #30415e; border-radius: 5px; min-height: 24px;"
             f"}}"
-            f"QScrollBar::handle:vertical:hover {{ background: #555; }}"
+            f"QScrollBar::handle:vertical:hover {{ background: #45608f; }}"
             f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}"
         )
         self._highlighter = CppHighlighter(self._editor.document())
@@ -214,17 +212,17 @@ class CodePanel(QWidget):
         # Flash copy button text briefly
         btn = self.sender()
         if btn:
-            btn.setText("✔ Copied")
+            btn.setText("Copied")
             btn.setStyleSheet(
-                "QPushButton { background: #1e3a1e; color: #4e9a51; border: 1px solid #2d5a2d;"
-                " border-radius: 4px; font-size: 10px; }"
+                "QPushButton { background: #173224; color: #7bd8aa; border: 1px solid #25573d;"
+                " border-radius: 8px; font-size: 10px; font-weight: 600; }"
             )
             from PyQt6.QtCore import QTimer
             def _reset():
-                btn.setText("⎘ Copy")
+                btn.setText("Copy")
                 btn.setStyleSheet(
-                    "QPushButton { background: #252525; color: #888; border: 1px solid #333;"
-                    " border-radius: 4px; font-size: 10px; }"
-                    "QPushButton:hover { background: #2e2e2e; color: #ccc; }"
+                    "QPushButton { background: #18253a; color: #b2bdd2; border: 1px solid #2a3b57;"
+                    " border-radius: 8px; font-size: 10px; font-weight: 600; }"
+                    "QPushButton:hover { background: #21304a; color: #eef3ff; }"
                 )
             QTimer.singleShot(1500, _reset)

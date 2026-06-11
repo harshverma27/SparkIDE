@@ -20,9 +20,9 @@ _COLOURS = {
     "dim":     "#4b5263",  # muted / timestamps
 }
 
-BG_PANEL  = "#111111"
-BG_HEADER = "#141414"
-BORDER    = "#2e2e2e"
+BG_PANEL  = "#0b1322"
+BG_HEADER = "#101a2c"
+BORDER    = "#263246"
 
 
 class LogPanel(QWidget):
@@ -42,32 +42,31 @@ class LogPanel(QWidget):
 
         # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
-        header.setFixedHeight(30)
+        header.setFixedHeight(38)
         header.setStyleSheet(
             f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};"
         )
         hl = QHBoxLayout(header)
-        hl.setContentsMargins(10, 0, 8, 0)
+        hl.setContentsMargins(14, 0, 10, 0)
 
-        title = QLabel("⬛  Output")
+        title = QLabel("Build Output")
         title.setStyleSheet(
-            "color: #888; font-size: 11px; font-weight: 600; letter-spacing: 0.4px;"
+            "color: #b2bdd2; font-size: 11px; font-weight: 700; letter-spacing: 0.4px;"
         )
         hl.addWidget(title)
         hl.addStretch()
 
-        # Timestamps toggle label (cosmetic for now)
         ts_label = QLabel("timestamps on")
-        ts_label.setStyleSheet("color: #3a3a3a; font-size: 10px; margin-right: 10px;")
+        ts_label.setStyleSheet("color: #6f7b94; font-size: 10px; margin-right: 10px;")
         hl.addWidget(ts_label)
 
-        clear_btn = QPushButton("✕ Clear")
-        clear_btn.setFixedSize(60, 20)
+        clear_btn = QPushButton("Clear")
+        clear_btn.setFixedSize(62, 24)
         clear_btn.setStyleSheet(
-            "QPushButton { background: #1e1e1e; color: #666; border: 1px solid #2a2a2a;"
-            " border-radius: 4px; font-size: 10px; }"
-            "QPushButton:hover { background: #2a2a2a; color: #e06c75; border-color: #e06c75; }"
-            "QPushButton:pressed { background: #1a1a1a; }"
+            "QPushButton { background: #18253a; color: #9aa7bf; border: 1px solid #2a3b57;"
+            " border-radius: 8px; font-size: 10px; font-weight: 600; }"
+            "QPushButton:hover { background: #21304a; color: #eef3ff; border-color: #45608f; }"
+            "QPushButton:pressed { background: #142034; }"
         )
         clear_btn.clicked.connect(self.clear)
         hl.addWidget(clear_btn)
@@ -89,17 +88,17 @@ class LogPanel(QWidget):
         self._editor.setStyleSheet(
             f"QPlainTextEdit {{"
             f"  background: {BG_PANEL};"
-            f"  color: #abb2bf;"
+            f"  color: #d5def0;"
             f"  border: none;"
-            f"  padding: 6px 12px;"
+            f"  padding: 10px 14px;"
             f"}}"
             f"QScrollBar:vertical {{"
-            f"  background: {BG_PANEL}; width: 6px; border: none;"
+            f"  background: {BG_PANEL}; width: 8px; border: none;"
             f"}}"
             f"QScrollBar::handle:vertical {{"
-            f"  background: #2a2a2a; border-radius: 3px;"
+            f"  background: #30415e; border-radius: 4px;"
             f"}}"
-            f"QScrollBar::handle:vertical:hover {{ background: #444; }}"
+            f"QScrollBar::handle:vertical:hover {{ background: #45608f; }}"
             f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}"
         )
         self._editor.setMaximumBlockCount(1000)

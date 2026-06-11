@@ -27,19 +27,21 @@ BUILD_DIR = Path(__file__).parent.parent / "build" / "sparkide_sketch"
 SKETCH_FILE = BUILD_DIR / "sparkide_sketch.ino"
 
 # ── Design tokens ────────────────────────────────────────────────────────────
-BG_DEEP    = "#141414"   # deepest background (title-bar-like areas)
-BG_DARK    = "#1a1a1a"   # dark surfaces
-BG_MID     = "#1e1e1e"   # mid surface (main background)
-BG_RAISED  = "#252525"   # slightly raised elements
-BORDER     = "#2e2e2e"   # subtle borders
-BORDER_HI  = "#4a4a4a"   # hover borders
-ACCENT_GRN = "#2d8a4e"   # compile green
-ACCENT_GRN_HI = "#23703e"
-ACCENT_BLU = "#1a6fb5"   # upload blue
-ACCENT_BLU_HI = "#155c99"
-TEXT_DIM   = "#606060"   # muted text
-TEXT_MID   = "#888888"   # secondary text
-TEXT_MAIN  = "#cccccc"   # primary text
+BG_DEEP    = "#0d1117"
+BG_DARK    = "#111827"
+BG_MID     = "#172033"
+BG_RAISED  = "#1f2a3d"
+BG_PANEL   = "#0f1728"
+BORDER     = "#263246"
+BORDER_HI  = "#425474"
+ACCENT_GRN = "#2f9e6f"
+ACCENT_GRN_HI = "#277f5a"
+ACCENT_BLU = "#2b7fff"
+ACCENT_BLU_HI = "#2367d1"
+ACCENT_GLD = "#f4b942"
+TEXT_DIM   = "#7e8aa5"
+TEXT_MID   = "#b2bdd2"
+TEXT_MAIN  = "#eef3ff"
 
 
 class BoardRefreshWorker(QThread):
@@ -98,8 +100,7 @@ class MainWindow(QMainWindow):
         self._refresh_worker = None
         self._job_worker = None
 
-        # Global window background
-        self.setStyleSheet(f"QMainWindow {{ background: {BG_MID}; }}")
+        self.setStyleSheet(self._window_stylesheet())
 
         self._build_menu_bar()
         self._build_toolbar()
@@ -147,29 +148,34 @@ class MainWindow(QMainWindow):
         tb = QToolBar("Main Toolbar")
         tb.setMovable(False)
         tb.setIconSize(QSize(16, 16))
-        tb.setFixedHeight(46)
+        tb.setFixedHeight(58)
         tb.setStyleSheet(
             f"QToolBar {{"
             f"  background: {BG_DEEP};"
             f"  border-bottom: 1px solid {BORDER};"
-            f"  padding: 0 12px;"
-            f"  spacing: 4px;"
+            f"  padding: 0 16px;"
+            f"  spacing: 6px;"
             f"}}"
             f"QToolBar::separator {{"
             f"  background: {BORDER_HI};"
             f"  width: 1px;"
-            f"  margin: 8px 6px;"
+            f"  margin: 12px 8px;"
             f"}}"
         )
         self.addToolBar(tb)
 
-        # ── Brand mark ──────────────────────────────────────────────────────
-        brand = QLabel("⚡ SparkIDE")
+        brand = QLabel("SparkIDE")
         brand.setStyleSheet(
-            "color: #e8e8e8; font-size: 14px; font-weight: 700;"
-            "padding-right: 14px; letter-spacing: 0.5px;"
+            f"color: {TEXT_MAIN}; font-size: 18px; font-weight: 700;"
+            "padding-right: 6px; letter-spacing: 0.4px;"
         )
         tb.addWidget(brand)
+        tag = QLabel("Visual Arduino Studio")
+        tag.setStyleSheet(
+            f"color: {TEXT_DIM}; font-size: 11px; font-weight: 600;"
+            "padding-right: 16px; text-transform: uppercase;"
+        )
+        tb.addWidget(tag)
         tb.addSeparator()
 
         # ── Board selector ──────────────────────────────────────────────────
@@ -230,7 +236,23 @@ class MainWindow(QMainWindow):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
 
-        self.setCentralWidget(splitter)
+        shell = QWidget()
+        shell_layout = QVBoxLayout(shell)
+        shell_layout.setContentsMargins(16, 16, 16, 12)
+        shell_layout.setSpacing(0)
+
+        frame = QWidget()
+        frame.setStyleSheet(
+            f"background: {BG_PANEL};"
+            f"border: 1px solid {BORDER};"
+            f"border-radius: 18px;"
+        )
+        frame_layout = QVBoxLayout(frame)
+        frame_layout.setContentsMargins(0, 0, 0, 0)
+        frame_layout.addWidget(splitter)
+
+        shell_layout.addWidget(frame)
+        self.setCentralWidget(shell)
 
     def _setup_web_channel(self):
         self._channel = QWebChannel()
@@ -293,8 +315,8 @@ class MainWindow(QMainWindow):
     def _status_pill(icon: str, label: str, bg: str) -> QLabel:
         lbl = QLabel(f"  {icon}  {label}  ")
         lbl.setStyleSheet(
-            f"QLabel {{ background: {bg}18; color: {TEXT_MID}; font-size: 11px;"
-            f" padding: 2px 8px; border-radius: 3px; margin: 3px 4px; }}"
+            f"QLabel {{ background: {bg}22; color: {TEXT_MID}; font-size: 11px;"
+            f" padding: 3px 10px; border: 1px solid {bg}44; border-radius: 10px; margin: 3px 4px; }}"
         )
         return lbl
 
@@ -464,7 +486,7 @@ class MainWindow(QMainWindow):
     def _tb_label(text: str) -> QLabel:
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            f"color: {TEXT_DIM}; font-size: 10px; font-weight: 600;"
+            f"color: {TEXT_DIM}; font-size: 10px; font-weight: 700;"
             f" letter-spacing: 0.5px; margin-left: 6px; margin-right: 2px;"
         )
         return lbl
@@ -474,15 +496,15 @@ class MainWindow(QMainWindow):
         cb = QComboBox()
         cb.addItems(items)
         cb.setFixedWidth(width)
-        cb.setFixedHeight(28)
+        cb.setFixedHeight(34)
         cb.setStyleSheet(
             f"QComboBox {{ background: {BG_RAISED}; color: {TEXT_MAIN};"
-            f" border: 1px solid {BORDER}; border-radius: 5px; padding: 2px 10px;"
+            f" border: 1px solid {BORDER}; border-radius: 10px; padding: 4px 12px;"
             f" font-size: 12px; }}"
             f"QComboBox:hover {{ border: 1px solid {BORDER_HI}; }}"
-            f"QComboBox::drop-down {{ border: none; width: 20px; }}"
+            f"QComboBox::drop-down {{ border: none; width: 24px; }}"
             f"QComboBox QAbstractItemView {{ background: {BG_DARK}; color: {TEXT_MAIN};"
-            f" border: 1px solid {BORDER_HI}; selection-background-color: #264f78; }}"
+            f" border: 1px solid {BORDER_HI}; selection-background-color: #244b88; }}"
         )
         return cb
 
@@ -490,25 +512,39 @@ class MainWindow(QMainWindow):
     def _make_btn(label: str, color: str = "", hover: str = "",
                   secondary: bool = False, tooltip: str = "") -> QPushButton:
         btn = QPushButton(label)
-        btn.setFixedHeight(30)
+        btn.setFixedHeight(34)
         if tooltip:
             btn.setToolTip(tooltip)
         if secondary:
             btn.setStyleSheet(
                 f"QPushButton {{ background: {BG_RAISED}; color: {TEXT_MID};"
-                f" border: 1px solid {BORDER}; border-radius: 5px;"
-                f" padding: 0 10px; font-size: 12px; }}"
-                f"QPushButton:hover {{ background: #303030; color: {TEXT_MAIN};"
+                f" border: 1px solid {BORDER}; border-radius: 10px;"
+                f" padding: 0 12px; font-size: 12px; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: #28354a; color: {TEXT_MAIN};"
                 f" border-color: {BORDER_HI}; }}"
                 f"QPushButton:pressed {{ background: {BG_DARK}; }}"
             )
         else:
-            btn.setFixedWidth(110)
+            btn.setFixedWidth(124)
             btn.setStyleSheet(
                 f"QPushButton {{ background: {color}; color: #ffffff;"
-                f" border: none; border-radius: 5px;"
-                f" padding: 0 14px; font-size: 12px; font-weight: 600; }}"
+                f" border: none; border-radius: 10px;"
+                f" padding: 0 16px; font-size: 12px; font-weight: 700; }}"
                 f"QPushButton:hover {{ background: {hover}; }}"
                 f"QPushButton:pressed {{ background: {hover}; }}"
             )
         return btn
+
+    @staticmethod
+    def _window_stylesheet() -> str:
+        return (
+            f"QMainWindow {{"
+            f"  background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
+            f"    stop:0 {BG_DEEP}, stop:0.5 {BG_MID}, stop:1 #101726);"
+            f"}}"
+            f"QLabel {{ color: {TEXT_MAIN}; }}"
+            f"QToolTip {{"
+            f"  background: {BG_PANEL}; color: {TEXT_MAIN};"
+            f"  border: 1px solid {BORDER_HI}; padding: 6px 8px;"
+            f"}}"
+        )

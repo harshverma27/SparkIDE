@@ -20,228 +20,581 @@
   <script src="generators/arduino_generator.js"></script>
 
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1e1e1e; }
-    #blocklyDiv { width: 100%; height: 100vh; }
+    :root {
+      color-scheme: dark;
+      --bg: #0b1322;
+      --panel: rgba(15, 23, 40, 0.94);
+      --panel-strong: rgba(16, 26, 44, 0.98);
+      --panel-soft: rgba(24, 37, 58, 0.92);
+      --border: #263246;
+      --border-strong: #425474;
+      --text: #eef3ff;
+      --text-soft: #aab6cd;
+      --text-dim: #77839d;
+      --accent: #2b7fff;
+      --accent-soft: rgba(43, 127, 255, 0.18);
+      --success: #2f9e6f;
+      --warning: #f4b942;
+      --shadow: 0 18px 40px rgba(1, 6, 18, 0.38);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(43, 127, 255, 0.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(47, 158, 111, 0.15), transparent 30%),
+        linear-gradient(180deg, #0c1423 0%, #09111d 100%);
+      font-family: "Inter", "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      padding: 14px;
+    }
+
+    .workspace-shell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(15, 23, 40, 0.96), rgba(10, 17, 29, 0.94));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .workspace-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 24%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 12%);
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid rgba(66, 84, 116, 0.45);
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--panel-strong), rgba(17, 27, 44, 0.95));
+    }
+
+    .topbar-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--warning);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 12px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(66, 84, 116, 0.55);
+      border-radius: 999px;
+      background: rgba(24, 37, 58, 0.92);
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .pill strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .pill.live::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(47, 158, 111, 0.18);
+    }
+
+    .workspace-stage {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-height: 0;
+      border: 1px solid rgba(66, 84, 116, 0.42);
+      border-radius: 18px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(13, 20, 33, 0.92), rgba(9, 15, 26, 0.98));
+    }
+
+    #blocklyDiv {
+      width: 100%;
+      height: 100%;
+    }
+
+    .quick-actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 3;
+      display: flex;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .quick-actions button {
+      pointer-events: auto;
+      min-width: 88px;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(66, 84, 116, 0.6);
+      border-radius: 10px;
+      background: rgba(15, 23, 40, 0.92);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    .quick-actions button:hover {
+      background: rgba(24, 37, 58, 0.98);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .quick-actions button.primary {
+      background: rgba(43, 127, 255, 0.18);
+      border-color: rgba(43, 127, 255, 0.48);
+      color: #dbe8ff;
+    }
+
+    .quick-actions button.primary:hover {
+      background: rgba(43, 127, 255, 0.28);
+    }
+
+    .footer-bar {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 4px;
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+
+    .footer-bar strong {
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    .blocklyToolboxDiv {
+      border-right: 1px solid rgba(66, 84, 116, 0.4) !important;
+      background: linear-gradient(180deg, rgba(11, 19, 34, 0.98), rgba(15, 23, 40, 0.98)) !important;
+    }
+
+    .blocklyTreeRow {
+      margin: 6px 10px !important;
+      padding: 10px 12px !important;
+      border: 1px solid transparent !important;
+      border-radius: 12px !important;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    .blocklyTreeRow:hover {
+      background: rgba(43, 127, 255, 0.1) !important;
+      border-color: rgba(66, 84, 116, 0.5) !important;
+      transform: translateX(2px);
+    }
+
+    .blocklyTreeSelected {
+      background: rgba(43, 127, 255, 0.18) !important;
+      border-color: rgba(43, 127, 255, 0.42) !important;
+    }
+
+    .blocklyTreeLabel {
+      color: var(--text) !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+    }
+
+    .blocklyFlyout,
+    .blocklyScrollbarBackground {
+      fill: rgba(11, 19, 34, 0.98) !important;
+    }
+
+    .blocklyFlyoutButtonBackground {
+      fill: #18253a !important;
+      stroke: #425474 !important;
+    }
+
+    .blocklyMainBackground {
+      stroke: transparent !important;
+    }
+
+    .blocklyScrollbarHandle {
+      fill: rgba(78, 98, 136, 0.7) !important;
+    }
+
+    .blocklyZoom > image,
+    .blocklyTrash > image {
+      opacity: 0.9;
+    }
   </style>
 </head>
 <body>
-  <div id="blocklyDiv"></div>
+  <div class="workspace-shell">
+    <div class="topbar">
+      <div class="topbar-copy">
+        <p class="eyebrow">Visual Builder</p>
+        <h1>Compose Arduino logic with blocks</h1>
+        <p class="subtitle">Keep setup, loop, I/O, and serial work visible while generated code updates live.</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="pill live"><strong id="workspaceStatus">Live sync</strong></div>
+        <div class="pill"><strong id="blockCount">1</strong> blocks</div>
+        <div class="pill"><strong id="categoryCount">8</strong> categories</div>
+      </div>
+    </div>
+
+    <div class="workspace-stage">
+      <div class="quick-actions">
+        <button type="button" id="centerBtn">Center</button>
+        <button type="button" id="clearBtn">Reset</button>
+        <button type="button" class="primary" id="zoomBtn">Zoom to fit</button>
+      </div>
+      <div id="blocklyDiv"></div>
+    </div>
+
+    <div class="footer-bar">
+      <span><strong>Tip:</strong> start with the structure block, then drop actions inside <code>setup()</code> or <code>loop()</code>.</span>
+      <span id="workspaceHint">Drag blocks to build the sketch flow.</span>
+    </div>
+  </div>
 
   <script>
-    // ── Toolbox ──────────────────────────────────────────────────────────────
     const TOOLBOX = {
-      kind: 'categoryToolbox',
+      kind: "categoryToolbox",
       contents: [
-
-        // ── Structure ──────────────────────────────────────────────────────
         {
-          kind: 'category', name: '⚙  Structure', colour: '120',
+          kind: "category", name: "Structure", colour: "120",
           contents: [
-            { kind: 'block', type: 'arduino_setup_loop' }
+            { kind: "block", type: "arduino_setup_loop" }
           ]
         },
-
-        // ── Digital I/O ────────────────────────────────────────────────────
         {
-          kind: 'category', name: '💡  Digital I/O', colour: '210',
+          kind: "category", name: "Digital I/O", colour: "210",
           contents: [
-            { kind: 'block', type: 'arduino_pinmode' },
-            { kind: 'block', type: 'arduino_digitalwrite' },
-            { kind: 'block', type: 'arduino_digitalread' },   // expression — plug into if/compare
-            { kind: 'block', type: 'arduino_pin_toggle' },
-            { kind: 'separator' },
-            { kind: 'block', type: 'arduino_led_blink' },
-            { kind: 'separator' },
-            { kind: 'block', type: 'arduino_button_pressed' } // expression — use in if/while
+            { kind: "block", type: "arduino_pinmode" },
+            { kind: "block", type: "arduino_digitalwrite" },
+            { kind: "block", type: "arduino_digitalread" },
+            { kind: "block", type: "arduino_pin_toggle" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_led_blink" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_button_pressed" }
           ]
         },
-
-        // ── Analog I/O ─────────────────────────────────────────────────────
         {
-          kind: 'category', name: '📈  Analog I/O', colour: '160',
+          kind: "category", name: "Analog I/O", colour: "160",
           contents: [
-            { kind: 'block', type: 'arduino_analogread' },
-            { kind: 'block', type: 'arduino_analogwrite' },
-            { kind: 'block', type: 'arduino_map' },
-            { kind: 'block', type: 'arduino_constrain' }
+            { kind: "block", type: "arduino_analogread" },
+            { kind: "block", type: "arduino_analogwrite" },
+            { kind: "block", type: "arduino_map" },
+            { kind: "block", type: "arduino_constrain" }
           ]
         },
-
-        // ── Time ───────────────────────────────────────────────────────────
         {
-          kind: 'category', name: '⏱  Time', colour: '30',
+          kind: "category", name: "Time", colour: "30",
           contents: [
-            { kind: 'block', type: 'arduino_delay' },
-            { kind: 'block', type: 'arduino_delay_microseconds' },
-            { kind: 'block', type: 'arduino_millis' },
-            { kind: 'block', type: 'arduino_micros' }
+            { kind: "block", type: "arduino_delay" },
+            { kind: "block", type: "arduino_delay_microseconds" },
+            { kind: "block", type: "arduino_millis" },
+            { kind: "block", type: "arduino_micros" }
           ]
         },
-
-        // ── Logic ──────────────────────────────────────────────────────────
         {
-          kind: 'category', name: '🔀  Logic', colour: '210',
+          kind: "category", name: "Logic", colour: "210",
           contents: [
-            { kind: 'block', type: 'controls_if' },
-            { kind: 'block', type: 'logic_compare', fields: { OP: 'EQ' } },
-            { kind: 'block', type: 'logic_operation' },
-            { kind: 'block', type: 'logic_negate' },
-            { kind: 'block', type: 'logic_boolean' }
+            { kind: "block", type: "controls_if" },
+            { kind: "block", type: "logic_compare", fields: { OP: "EQ" } },
+            { kind: "block", type: "logic_operation" },
+            { kind: "block", type: "logic_negate" },
+            { kind: "block", type: "logic_boolean" }
           ]
         },
-
-        // ── Loops ──────────────────────────────────────────────────────────
         {
-          kind: 'category', name: '🔁  Loops', colour: '120',
+          kind: "category", name: "Loops", colour: "120",
           contents: [
-            { kind: 'block', type: 'controls_whileUntil' },
+            { kind: "block", type: "controls_whileUntil" },
             {
-              kind: 'block', type: 'controls_for',
-              fields: { VAR: 'i' },
+              kind: "block", type: "controls_for",
+              fields: { VAR: "i" },
               inputs: {
-                FROM: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
-                TO:   { shadow: { type: 'math_number', fields: { NUM: 9 } } },
-                BY:   { shadow: { type: 'math_number', fields: { NUM: 1 } } }
+                FROM: { shadow: { type: "math_number", fields: { NUM: 0 } } },
+                TO: { shadow: { type: "math_number", fields: { NUM: 9 } } },
+                BY: { shadow: { type: "math_number", fields: { NUM: 1 } } }
               }
             },
-            { kind: 'block', type: 'arduino_do_while' },
-            { kind: 'separator' },
-            { kind: 'block', type: 'arduino_break' },
-            { kind: 'block', type: 'arduino_continue' }
+            { kind: "block", type: "arduino_do_while" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_break" },
+            { kind: "block", type: "arduino_continue" }
           ]
         },
-
-        // ── Math ───────────────────────────────────────────────────────────
         {
-          kind: 'category', name: '🔢  Math', colour: '230',
+          kind: "category", name: "Math", colour: "230",
           contents: [
-            { kind: 'block', type: 'math_number' },
-            { kind: 'block', type: 'math_arithmetic' },
-            { kind: 'block', type: 'arduino_math_modulo' },
-            { kind: 'separator' },
-            { kind: 'block', type: 'arduino_math_abs' },
-            { kind: 'block', type: 'arduino_math_sqrt' },
-            { kind: 'block', type: 'arduino_math_pow' },
-            { kind: 'block', type: 'arduino_math_round' },
-            { kind: 'separator' },
-            { kind: 'block', type: 'arduino_math_random' },
-            { kind: 'block', type: 'arduino_math_min' },
-            { kind: 'block', type: 'arduino_math_max' }
+            { kind: "block", type: "math_number" },
+            { kind: "block", type: "math_arithmetic" },
+            { kind: "block", type: "arduino_math_modulo" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_math_abs" },
+            { kind: "block", type: "arduino_math_sqrt" },
+            { kind: "block", type: "arduino_math_pow" },
+            { kind: "block", type: "arduino_math_round" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_math_random" },
+            { kind: "block", type: "arduino_math_min" },
+            { kind: "block", type: "arduino_math_max" }
           ]
         },
-
-        // ── Variables ──────────────────────────────────────────────────────
         {
-          kind: 'category', name: '📦  Variables', colour: '330',
+          kind: "category", name: "Variables", colour: "330",
           contents: [
-            // Declarations
-            { kind: 'block', type: 'arduino_variable_int' },
-            { kind: 'block', type: 'arduino_variable_int_expr' },
-            { kind: 'block', type: 'arduino_variable_float' },
-            { kind: 'block', type: 'arduino_variable_bool' },
-            { kind: 'block', type: 'arduino_variable_string' },
-            { kind: 'separator' },
-            // Get value
-            { kind: 'block', type: 'arduino_variable_get' },
-            // Assignment / compound
-            { kind: 'block', type: 'arduino_variable_assign' },
-            { kind: 'block', type: 'arduino_variable_compound' }
+            { kind: "block", type: "arduino_variable_int" },
+            { kind: "block", type: "arduino_variable_int_expr" },
+            { kind: "block", type: "arduino_variable_float" },
+            { kind: "block", type: "arduino_variable_bool" },
+            { kind: "block", type: "arduino_variable_string" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_variable_get" },
+            { kind: "block", type: "arduino_variable_assign" },
+            { kind: "block", type: "arduino_variable_compound" }
           ]
         },
-
-        // ── Serial ─────────────────────────────────────────────────────────
         {
-          kind: 'category', name: '📡  Serial', colour: '270',
+          kind: "category", name: "Serial", colour: "270",
           contents: [
-            { kind: 'block', type: 'arduino_serial_begin' },
-            { kind: 'separator' },
-            // Print string literal
-            { kind: 'block', type: 'arduino_serial_print' },
-            { kind: 'block', type: 'arduino_serial_println' },
-            // Print any expression block (variable, sensor, calculation)
-            { kind: 'block', type: 'arduino_serial_print_expr' },
-            { kind: 'block', type: 'arduino_serial_println_expr' },
-            { kind: 'separator' },
-            // Read from serial
-            { kind: 'block', type: 'arduino_serial_available' },
-            { kind: 'block', type: 'arduino_serial_read' },
-            { kind: 'block', type: 'arduino_serial_flush' }
+            { kind: "block", type: "arduino_serial_begin" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_serial_print" },
+            { kind: "block", type: "arduino_serial_println" },
+            { kind: "block", type: "arduino_serial_print_expr" },
+            { kind: "block", type: "arduino_serial_println_expr" },
+            { kind: "separator" },
+            { kind: "block", type: "arduino_serial_available" },
+            { kind: "block", type: "arduino_serial_read" },
+            { kind: "block", type: "arduino_serial_flush" }
           ]
         }
       ]
     };
 
-
-    // ── Initial workspace: pre-place the setup/loop container ────────────────
     const INITIAL_STATE = {
       blocks: {
         languageVersion: 0,
-        blocks: [{ type: 'arduino_setup_loop', x: 40, y: 40 }]
+        blocks: [{ type: "arduino_setup_loop", x: 40, y: 40 }]
       }
     };
 
-    // ── Main init ────────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
+    const WORKSPACE_THEME = Blockly.Theme.defineTheme("sparkide", {
+      base: Blockly.Themes.Dark,
+      componentStyles: {
+        workspaceBackgroundColour: "#0f1728",
+        toolboxBackgroundColour: "#0b1322",
+        toolboxForegroundColour: "#eef3ff",
+        flyoutBackgroundColour: "#0f1728",
+        flyoutForegroundColour: "#eef3ff",
+        flyoutOpacity: 1,
+        scrollbarColour: "#4a607f",
+        insertionMarkerColour: "#f4b942",
+        insertionMarkerOpacity: 0.4,
+        scrollbarOpacity: 0.8,
+        cursorColour: "#eef3ff",
+        blackBackground: "#09111d"
+      },
+      fontStyle: {
+        family: "Inter, Segoe UI, sans-serif",
+        weight: "600",
+        size: 12
+      },
+      startHats: true
+    });
 
-      const workspace = Blockly.inject('blocklyDiv', {
+    function setWorkspaceHint(message) {
+      const hint = document.getElementById("workspaceHint");
+      if (hint) {
+        hint.textContent = message;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const blockCountNode = document.getElementById("blockCount");
+      const statusNode = document.getElementById("workspaceStatus");
+
+      const workspace = Blockly.inject("blocklyDiv", {
         toolbox: TOOLBOX,
-        theme:   Blockly.Themes.Dark,
-        grid: { spacing: 24, length: 4, colour: '#2a2a2a', snap: true },
-        trashcan:   true,
-        scrollbars: true,
-        zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 3, minScale: 0.3 }
+        theme: WORKSPACE_THEME,
+        renderer: "zelos",
+        move: {
+          scrollbars: {
+            horizontal: true,
+            vertical: true
+          },
+          drag: true,
+          wheel: true
+        },
+        grid: { spacing: 26, length: 3, colour: "#22314b", snap: true },
+        trashcan: true,
+        zoom: { controls: true, wheel: true, startScale: 0.88, maxScale: 2.4, minScale: 0.35, scaleSpeed: 1.12 }
       });
 
       Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
 
-      // ── Generate & send C++ to Python ────────────────────────────────────
+      function updateWorkspaceMeta() {
+        const count = workspace.getAllBlocks(false).length;
+        if (blockCountNode) {
+          blockCountNode.textContent = String(count);
+        }
+        if (statusNode) {
+          statusNode.textContent = count > 1 ? "Flow ready" : "Live sync";
+        }
+        setWorkspaceHint(count > 1 ? "Your logic is taking shape. Use Zoom to fit for larger flows." : "Drag blocks from the left to build the sketch flow.");
+      }
+
       function generateAndSend() {
         try {
-          var code = ArduinoGenerator.workspaceToCode(workspace);
-          if (!code || code.trim() === '') {
-            code = '// Place blocks inside setup() or loop() to generate code.';
+          let code = ArduinoGenerator.workspaceToCode(workspace);
+          if (!code || code.trim() === "") {
+            code = "// Place blocks inside setup() or loop() to generate code.";
           }
           if (window.bridge) {
             window.bridge.on_code_update(code);
           }
+          updateWorkspaceMeta();
         } catch (err) {
-          console.error('[SparkIDE] Code generation error:', err);
+          console.error("[SparkIDE] Code generation error:", err);
+          if (statusNode) {
+            statusNode.textContent = "Generation error";
+          }
+          setWorkspaceHint("A block failed to generate code. Check the browser console in development.");
         }
       }
 
-      // ── Connect QWebChannel bridge ───────────────────────────────────────
       function connectBridge(attempts) {
-        if (typeof QWebChannel === 'undefined' || typeof qt === 'undefined') {
-          if (attempts > 0) setTimeout(function () { connectBridge(attempts - 1); }, 150);
-          else console.error('[SparkIDE] Bridge connection failed.');
+        if (typeof QWebChannel === "undefined" || typeof qt === "undefined") {
+          if (attempts > 0) {
+            setTimeout(function () { connectBridge(attempts - 1); }, 150);
+          } else {
+            console.error("[SparkIDE] Bridge connection failed.");
+            if (statusNode) {
+              statusNode.textContent = "Bridge offline";
+            }
+          }
           return;
         }
         new QWebChannel(qt.webChannelTransport, function (channel) {
           window.bridge = channel.objects.bridge;
-          console.log('[SparkIDE] Python bridge connected.');
           generateAndSend();
         });
       }
-      connectBridge(10);
 
-      // ── Workspace change → update code panel ────────────────────────────
       workspace.addChangeListener(function (event) {
-        if (event.isUiEvent) return;
+        if (event.isUiEvent) {
+          return;
+        }
         generateAndSend();
       });
 
-      // ── Public API for Python (called via page.runJavaScript) ────────────
+      document.getElementById("centerBtn").addEventListener("click", function () {
+        workspace.scrollCenter();
+        setWorkspaceHint("Workspace centered.");
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", function () {
+        workspace.clear();
+        Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
+        workspace.scrollCenter();
+        generateAndSend();
+        setWorkspaceHint("Workspace reset to the default structure block.");
+      });
+
+      document.getElementById("zoomBtn").addEventListener("click", function () {
+        workspace.zoomToFit();
+        setWorkspaceHint("Zoomed to fit the current flow.");
+      });
+
       window.loadWorkspace = function (jsonStr) {
-        try { Blockly.serialization.workspaces.load(JSON.parse(jsonStr), workspace); }
-        catch (e) { console.error('[SparkIDE] loadWorkspace error:', e); }
+        try {
+          Blockly.serialization.workspaces.load(JSON.parse(jsonStr), workspace);
+          updateWorkspaceMeta();
+        } catch (e) {
+          console.error("[SparkIDE] loadWorkspace error:", e);
+        }
       };
+
       window.getWorkspaceJson = function () {
         return JSON.stringify(Blockly.serialization.workspaces.save(workspace));
       };
+
       window.clearWorkspace = function () {
         workspace.clear();
         Blockly.serialization.workspaces.load(INITIAL_STATE, workspace);
+        updateWorkspaceMeta();
       };
+
+      updateWorkspaceMeta();
+      connectBridge(10);
     });
   </script>
 </body>
