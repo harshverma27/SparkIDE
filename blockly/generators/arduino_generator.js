@@ -247,13 +247,16 @@ ArduinoGenerator.forBlock['math_arithmetic'] = function (block, generator) {
     MINUS:    ['-', ArduinoGenerator.ORDER_SUBTRACTION],
     MULTIPLY: ['*', ArduinoGenerator.ORDER_MULTIPLICATION],
     DIVIDE:   ['/', ArduinoGenerator.ORDER_DIVISION],
-    POWER:    ['**', ArduinoGenerator.ORDER_NONE],
+    POWER:    ['POWER', ArduinoGenerator.ORDER_NONE],
   };
   var tuple = OPS[block.getFieldValue('OP')];
   var op    = tuple[0];
   var order = tuple[1];
   var a     = generator.valueToCode(block, 'A', order) || '0';
   var b     = generator.valueToCode(block, 'B', order) || '0';
+  if (op === 'POWER') {
+    return ['pow(' + a + ', ' + b + ')', ArduinoGenerator.ORDER_ATOMIC];
+  }
   return [a + ' ' + op + ' ' + b, order];
 };
 
@@ -436,4 +439,3 @@ ArduinoGenerator.forBlock['arduino_button_pressed'] = function (block, generator
   var pin = block.getFieldValue('PIN');
   return ['(digitalRead(' + pin + ') == LOW)', ArduinoGenerator.ORDER_EQUALITY];
 };
-
