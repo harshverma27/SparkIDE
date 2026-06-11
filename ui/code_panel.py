@@ -200,6 +200,10 @@ class CodePanel(QWidget):
         self._editor.setTextCursor(cursor)
         self._update_line_count(self._editor.document().blockCount())
 
+    def current_code(self) -> str:
+        """Return the generated sketch currently shown in the preview."""
+        return self._editor.toPlainText()
+
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _update_line_count(self, count: int):

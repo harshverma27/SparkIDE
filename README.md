@@ -7,13 +7,17 @@ SparkIDE is designed to bring the ease of Scratch-like block programming to Ardu
 
 ---
 
-## ✨ Features (v0.1 — Foundation)
+## ✨ Features (v0.2 — Hardware Execution)
 
 - **Native Linux App**: Fast desktop application built with Python 3 and PyQt6.
 - **Deep Dark Theme**: Custom `One Dark` inspired UI for distraction-free coding, complete with custom styled docks, panels, and scrollbars.
 - **Live C++ Generation**: Watch your C++ code write itself in real-time as you snap blocks together on the left panel.
 - **Blockly Integration**: Offline-ready implementation of Google Blockly loaded via QtWebEngine.
 - **State Saving**: Save and load Blockly workspaces to `.json` files (`Ctrl+S`, `Ctrl+O`).
+- **Board Discovery**: Refresh connected Arduino boards and serial ports through `arduino-cli`.
+- **One-Click Compile**: Write the generated C++ to a valid sketch folder and compile it through `arduino-cli`.
+- **One-Click Upload**: Compile and flash the selected board/port from the SparkIDE toolbar.
+- **Live Build Logs**: Stream compiler and uploader output into the docked Output panel.
 - **Rich Block Library**: Includes **50+ custom blocks** covering the entire standard Arduino library:
   - **Structure**: `setup()` and `loop()`.
   - **Digital I/O**: `pinMode()`, `digitalWrite()`, `digitalRead()`, pin toggling, button edge cases, and LED blink routines.
@@ -68,12 +72,17 @@ SparkIDE/
 
 ---
 
-## 🛣️ Roadmap (v0.2 — Execution Phase)
+## 🛣️ Roadmap
 
-The GUI and Block definitions are complete. The next phase will connect the generated code to physical hardware.
+### Completed in v0.2 — Execution Phase
 
-- [ ] **Arduino-CLI Integration**: Wrapping the `arduino-cli` binary within Python (`cli/arduino_cli.py`).
-- [ ] **Board Discovery**: Dynamic dropdown population of connected USB boards and serial ports.
-- [ ] **One-Click Compiling**: Send the generated C++ to `arduino-cli compile` and stream compiler logs to the Output dock.
-- [ ] **Seamless Uploading**: Flash the compiled binary directly to the Arduino via the IDE.
+- [x] **Arduino-CLI Integration**: Wrapping the `arduino-cli` binary within Python (`cli/arduino_cli.py`).
+- [x] **Board Discovery**: Dynamic dropdown population of connected USB boards and serial ports.
+- [x] **One-Click Compiling**: Send the generated C++ to `arduino-cli compile` and stream compiler logs to the Output dock.
+- [x] **Seamless Uploading**: Flash the compiled binary directly to the Arduino via the IDE.
+
+### Next Upgrades
+
 - [ ] **Advanced Blocks**: Add support for User-Defined Functions (requires multi-pass C++ generation), Servo motor libraries (`#include <Servo.h>`), and non-blocking timers.
+- [ ] **Serial Monitor**: Add a built-in serial console with baud-rate selection.
+- [ ] **Memory Gauges**: Parse flash/RAM usage from compile output and render usage bars.

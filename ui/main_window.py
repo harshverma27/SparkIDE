@@ -2,32 +2,29 @@
 ui/main_window.py — PyQt6 Main Application Window.
 """
 
-import json
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QToolBar, QStatusBar,
     QDockWidget, QSizePolicy, QMenu, QFileDialog, QMessageBox,
-    QFrame,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtGui import QAction, QKeySequence, QColor
-from PyQt6.QtCore import Qt, QSize, QUrl
+from PyQt6.QtCore import Qt, QSize, QUrl, QThread, pyqtSignal
 
 from ui.code_panel import CodePanel
 from ui.log_panel import LogPanel
 from bridge.channel import Bridge
+from cli.arduino_cli import ArduinoCLI, ArduinoCLIError, BoardOption
 
-
-# ── Placeholder board / port data (real data from arduino-cli in next phase) ──
-PLACEHOLDER_BOARDS = ["Arduino Uno", "Arduino Nano", "Arduino Mega", "Arduino Leonardo"]
-PLACEHOLDER_PORTS  = ["/dev/ttyUSB0", "/dev/ttyACM0", "/dev/ttyUSB1"]
 
 # Absolute path to the Blockly host page
 BLOCKLY_HTML = Path(__file__).parent.parent / "blockly" / "index.html"
+BUILD_DIR = Path(__file__).parent.parent / "build" / "sparkide_sketch"
+SKETCH_FILE = BUILD_DIR / "sparkide_sketch.ino"
 
 # ── Design tokens ────────────────────────────────────────────────────────────
 BG_DEEP    = "#141414"   # deepest background (title-bar-like areas)
@@ -45,6 +42,51 @@ TEXT_MID   = "#888888"   # secondary text
 TEXT_MAIN  = "#cccccc"   # primary text
 
 
+class BoardRefreshWorker(QThread):
+    finished = pyqtSignal(list, list, str)
+
+    def run(self):
+        cli = ArduinoCLI()
+        try:
+            detected = cli.list_boards()
+            installed = cli.list_installed_boards()
+            ports = sorted({board.port for board in detected if board.port})
+            self.finished.emit(detected + installed, ports, "")
+        except ArduinoCLIError as exc:
+            self.finished.emit([], [], str(exc))
+
+
+class ArduinoJobWorker(QThread):
+    line = pyqtSignal(str, str)
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, action: str, fqbn: str, port: str, code: str, parent=None):
+        super().__init__(parent)
+        self._action = action
+        self._fqbn = fqbn
+        self._port = port
+        self._code = code
+
+    def run(self):
+        try:
+            BUILD_DIR.mkdir(parents=True, exist_ok=True)
+            SKETCH_FILE.write_text(self._code, encoding="utf-8")
+            self.line.emit(f"Sketch written to {SKETCH_FILE}", "dim")
+
+            cli = ArduinoCLI()
+            if self._action == "compile":
+                ok = cli.compile(self._fqbn, BUILD_DIR, self.line.emit)
+                self.finished.emit(ok, "Compile complete." if ok else "Compile failed.")
+            else:
+                ok = cli.compile(self._fqbn, BUILD_DIR, self.line.emit)
+                if ok:
+                    ok = cli.upload(self._fqbn, self._port, BUILD_DIR, self.line.emit)
+                self.finished.emit(ok, "Upload complete." if ok else "Upload failed.")
+        except OSError as exc:
+            self.line.emit(f"Could not write sketch: {exc}", "error")
+            self.finished.emit(False, "Sketch write failed.")
+
+
 class MainWindow(QMainWindow):
     """Top-level application window."""
 
@@ -53,6 +95,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SparkIDE")
         self.setMinimumSize(1100, 680)
         self.resize(1360, 800)
+        self._refresh_worker = None
+        self._job_worker = None
 
         # Global window background
         self.setStyleSheet(f"QMainWindow {{ background: {BG_MID}; }}")
@@ -62,6 +106,7 @@ class MainWindow(QMainWindow):
         self._build_central()
         self._build_log_dock()
         self._build_status_bar()
+        self._on_refresh_ports()
 
     # ── Menu bar ──────────────────────────────────────────────────────────────
 
@@ -129,7 +174,7 @@ class MainWindow(QMainWindow):
 
         # ── Board selector ──────────────────────────────────────────────────
         tb.addWidget(self._tb_label("Board"))
-        self._board_combo = self._make_combo(PLACEHOLDER_BOARDS, 145)
+        self._board_combo = self._make_combo(["Loading..."], 245)
         self._board_combo.currentTextChanged.connect(self._update_status)
         tb.addWidget(self._board_combo)
 
@@ -137,14 +182,14 @@ class MainWindow(QMainWindow):
 
         # ── Port selector ───────────────────────────────────────────────────
         tb.addWidget(self._tb_label("Port"))
-        self._port_combo = self._make_combo(PLACEHOLDER_PORTS, 145)
+        self._port_combo = self._make_combo(["No port detected"], 175)
         self._port_combo.currentTextChanged.connect(self._update_status)
         tb.addWidget(self._port_combo)
 
-        refresh_btn = self._make_btn("↺", secondary=True, tooltip="Refresh boards and ports")
-        refresh_btn.setFixedWidth(32)
-        refresh_btn.clicked.connect(self._on_refresh_ports)
-        tb.addWidget(refresh_btn)
+        self._refresh_btn = self._make_btn("↺", secondary=True, tooltip="Refresh boards and ports")
+        self._refresh_btn.setFixedWidth(32)
+        self._refresh_btn.clicked.connect(self._on_refresh_ports)
+        tb.addWidget(self._refresh_btn)
 
         # ── Spacer ──────────────────────────────────────────────────────────
         spacer = QWidget()
@@ -152,15 +197,15 @@ class MainWindow(QMainWindow):
         tb.addWidget(spacer)
 
         # ── Action buttons ──────────────────────────────────────────────────
-        compile_btn = self._make_btn("⚡  Compile", color=ACCENT_GRN, hover=ACCENT_GRN_HI,
-                                     tooltip="Compile sketch (arduino-cli)")
-        compile_btn.clicked.connect(self._on_compile)
-        tb.addWidget(compile_btn)
+        self._compile_btn = self._make_btn("⚡  Compile", color=ACCENT_GRN, hover=ACCENT_GRN_HI,
+                                           tooltip="Compile sketch (arduino-cli)")
+        self._compile_btn.clicked.connect(self._on_compile)
+        tb.addWidget(self._compile_btn)
 
-        upload_btn = self._make_btn("⬆  Upload", color=ACCENT_BLU, hover=ACCENT_BLU_HI,
-                                    tooltip="Compile & upload to board")
-        upload_btn.clicked.connect(self._on_upload)
-        tb.addWidget(upload_btn)
+        self._upload_btn = self._make_btn("⬆  Upload", color=ACCENT_BLU, hover=ACCENT_BLU_HI,
+                                          tooltip="Compile & upload to board")
+        self._upload_btn.clicked.connect(self._on_upload)
+        tb.addWidget(self._upload_btn)
 
     # ── Central widget ────────────────────────────────────────────────────────
 
@@ -256,13 +301,34 @@ class MainWindow(QMainWindow):
     # ── Actions ───────────────────────────────────────────────────────────────
 
     def _on_compile(self):
-        self._log_panel.append_line("[ Coming soon ]  Compile — arduino-cli integration in next phase.", "warning")
+        board = self._selected_board()
+        if not board:
+            self._show_warning("Select a board before compiling.")
+            return
+        self._start_job("compile", board.fqbn, "")
 
     def _on_upload(self):
-        self._log_panel.append_line("[ Coming soon ]  Upload — arduino-cli integration in next phase.", "warning")
+        board = self._selected_board()
+        port = self._selected_port() or (board.port if board else "")
+        if not board:
+            self._show_warning("Select a board before uploading.")
+            return
+        if not port:
+            self._show_warning("Connect a board and select a serial port before uploading.")
+            return
+        self._start_job("upload", board.fqbn, port)
 
     def _on_refresh_ports(self):
-        self._log_panel.append_line("[ Coming soon ]  Refresh ports — arduino-cli integration in next phase.", "warning")
+        if self._refresh_worker and self._refresh_worker.isRunning():
+            return
+        if hasattr(self, "_refresh_btn"):
+            self._refresh_btn.setEnabled(False)
+        self._set_status("● Scanning", "#e5c07b")
+        if hasattr(self, "_log_panel"):
+            self._log_panel.append_line("Scanning boards and ports...", "info")
+        self._refresh_worker = BoardRefreshWorker(self)
+        self._refresh_worker.finished.connect(self._on_boards_loaded)
+        self._refresh_worker.start()
 
     def _on_save(self):
         def _write(json_str: str):
@@ -292,7 +358,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About SparkIDE",
-            "<b>SparkIDE v0.1</b><br>"
+            "<b>SparkIDE v0.2</b><br>"
             "Visual Arduino programming for Linux.<br><br>"
             "Drag blocks → see generated C++ → compile & upload.<br><br>"
             "<a href='https://github.com/harshverma27/SparkIDE'>"
@@ -311,6 +377,86 @@ class MainWindow(QMainWindow):
             self._sb_board.setText(f"  💻  {board}  ")
         if hasattr(self, "_sb_port"):
             self._sb_port.setText(f"  🔌  {port}  ")
+
+    def _on_boards_loaded(self, boards: list, ports: list, error: str):
+        if hasattr(self, "_refresh_btn"):
+            self._refresh_btn.setEnabled(True)
+
+        self._board_combo.blockSignals(True)
+        self._board_combo.clear()
+        seen_fqbn = set()
+        for board in boards:
+            if board.fqbn in seen_fqbn and not board.detected:
+                continue
+            seen_fqbn.add(board.fqbn)
+            self._board_combo.addItem(board.label, board)
+        if self._board_combo.count() == 0:
+            self._board_combo.addItem("No boards available", None)
+        self._board_combo.blockSignals(False)
+
+        self._port_combo.blockSignals(True)
+        self._port_combo.clear()
+        if ports:
+            for port in ports:
+                self._port_combo.addItem(port, port)
+        else:
+            self._port_combo.addItem("No port detected", "")
+        self._port_combo.blockSignals(False)
+
+        if error:
+            self._log_panel.append_line(error, "error")
+            self._set_status("● CLI error", "#e06c75")
+        elif ports:
+            self._log_panel.append_line(f"Found {len(ports)} port(s).", "success")
+            self._set_status("● Ready", "#4e9a51")
+        else:
+            self._log_panel.append_line("No serial ports detected. Compile is available; upload needs a connected board.", "warning")
+            self._set_status("● No port", "#e5c07b")
+
+        self._update_status()
+
+    def _start_job(self, action: str, fqbn: str, port: str):
+        if self._job_worker and self._job_worker.isRunning():
+            return
+        code = self._code_panel.current_code().strip()
+        if not code or "void setup()" not in code or "void loop()" not in code:
+            self._show_warning("The generated sketch must include setup() and loop().")
+            return
+
+        self._set_busy(True)
+        self._set_status("● Working", "#e5c07b")
+        self._log_panel.append_line(f"Starting {action} for {fqbn}...", "info")
+        self._job_worker = ArduinoJobWorker(action, fqbn, port, code, self)
+        self._job_worker.line.connect(self._log_panel.append_line)
+        self._job_worker.finished.connect(self._on_job_finished)
+        self._job_worker.start()
+
+    def _on_job_finished(self, ok: bool, message: str):
+        self._log_panel.append_line(message, "success" if ok else "error")
+        self._set_busy(False)
+        self._set_status("● Ready" if ok else "● Failed", "#4e9a51" if ok else "#e06c75")
+
+    def _selected_board(self) -> BoardOption | None:
+        return self._board_combo.currentData()
+
+    def _selected_port(self) -> str:
+        return self._port_combo.currentData() or ""
+
+    def _set_busy(self, busy: bool):
+        self._compile_btn.setEnabled(not busy)
+        self._upload_btn.setEnabled(not busy)
+        self._refresh_btn.setEnabled(not busy)
+        self._board_combo.setEnabled(not busy)
+        self._port_combo.setEnabled(not busy)
+
+    def _set_status(self, text: str, colour: str):
+        if hasattr(self, "_sb_status"):
+            self._sb_status.setText(text)
+            self._sb_status.setStyleSheet(f"color: {colour}; font-size: 11px; padding: 0 10px;")
+
+    def _show_warning(self, text: str):
+        self._log_panel.append_line(text, "warning")
+        QMessageBox.warning(self, "SparkIDE", text)
 
     # ── Widget factory helpers ────────────────────────────────────────────────
 

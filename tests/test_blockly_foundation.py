@@ -47,3 +47,10 @@ def test_toolbox_references_existing_blocks():
     }
 
     assert toolbox_types - custom_block_types - built_in_types == set()
+
+
+def test_generator_does_not_emit_python_style_power_operator():
+    generator_js = GENERATOR_JS.read_text()
+
+    assert "'**'" not in generator_js
+    assert "pow(" in generator_js
