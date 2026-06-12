@@ -57,7 +57,7 @@ def _apply_dark_theme(app: QApplication) -> None:
 def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("SparkIDE")
-    app.setApplicationVersion("0.1.0")
+    app.setApplicationVersion("1.0.0")
     app.setOrganizationName("SparkIDE")
 
     _apply_dark_theme(app)

@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About SparkIDE",
-            "<b>SparkIDE v0.2</b><br>"
+            "<b>SparkIDE v1.0</b><br>"
             "Visual Arduino programming for Linux.<br><br>"
             "Drag blocks → see generated C++ → compile & upload.<br><br>"
             "<a href='https://github.com/harshverma27/SparkIDE'>"

@@ -19,7 +19,7 @@ def test_append_line_adds_timestamped_message(app):
     panel.append_line("Compiled sketch", level="success")
 
     text = panel._editor.toPlainText()
-    assert "SparkIDE v0.1" in text
+    assert "SparkIDE v1.0" in text
     assert "Compiled sketch" in text
     assert "[" in text and "]" in text
 

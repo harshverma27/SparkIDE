@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
 from PyQt6.QtCore import Qt
 
 
-WELCOME_TEXT = "SparkIDE v0.1 — Ready.  Connect an Arduino board and click Compile."
+WELCOME_TEXT = "SparkIDE v1.0 — Ready.  Connect an Arduino board and click Compile."
 
 # Colour palette — Hybrid Lab Console (terminal/maker-lab)
 _COLOURS = {
