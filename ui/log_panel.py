@@ -11,18 +11,19 @@ from PyQt6.QtCore import Qt
 
 WELCOME_TEXT = "SparkIDE v0.1 — Ready.  Connect an Arduino board and click Compile."
 
-# Colour palette — One Dark tones
+# Colour palette — Hybrid Lab Console (terminal/maker-lab)
 _COLOURS = {
-    "info":    "#abb2bf",  # soft white
-    "warning": "#e5c07b",  # amber
-    "error":   "#e06c75",  # soft red
-    "success": "#98c379",  # soft green
-    "dim":     "#4b5263",  # muted / timestamps
+    "info":    "#7fa89c",  # muted teal-gray
+    "warning": "#f0a93e",  # amber
+    "error":   "#f0654a",  # warm red
+    "success": "#4ade80",  # phosphor green
+    "dim":     "#3f4f48",  # muted / timestamps
 }
 
-BG_PANEL  = "#0b1322"
-BG_HEADER = "#101a2c"
-BORDER    = "#263246"
+BG_PANEL  = "#0a0f0c"
+BG_HEADER = "#0d1310"
+BORDER    = "#22322a"
+FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class LogPanel(QWidget):
@@ -51,22 +52,25 @@ class LogPanel(QWidget):
 
         title = QLabel("Build Output")
         title.setStyleSheet(
-            "color: #b2bdd2; font-size: 11px; font-weight: 700; letter-spacing: 0.4px;"
+            f"color: #93a89c; font-family: {FONT_MONO}; font-size: 11px; font-weight: 700; letter-spacing: 0.4px;"
         )
         hl.addWidget(title)
         hl.addStretch()
 
         ts_label = QLabel("timestamps on")
-        ts_label.setStyleSheet("color: #6f7b94; font-size: 10px; margin-right: 10px;")
+        ts_label.setStyleSheet(
+            f"color: #5c7468; font-family: {FONT_MONO}; font-size: 10px; margin-right: 10px;"
+        )
         hl.addWidget(ts_label)
 
         clear_btn = QPushButton("Clear")
         clear_btn.setFixedSize(62, 24)
         clear_btn.setStyleSheet(
-            "QPushButton { background: #18253a; color: #9aa7bf; border: 1px solid #2a3b57;"
-            " border-radius: 8px; font-size: 10px; font-weight: 600; }"
-            "QPushButton:hover { background: #21304a; color: #eef3ff; border-color: #45608f; }"
-            "QPushButton:pressed { background: #142034; }"
+            f"QPushButton {{ background: #16201b; color: #93a89c; font-family: {FONT_MONO};"
+            " border: 1px solid #22322a;"
+            " border-radius: 6px; font-size: 10px; font-weight: 600; }"
+            "QPushButton:hover { background: #1c2620; color: #e4f0e8; border-color: #3c5347; }"
+            "QPushButton:pressed { background: #0d1310; }"
         )
         clear_btn.clicked.connect(self.clear)
         hl.addWidget(clear_btn)
@@ -88,7 +92,7 @@ class LogPanel(QWidget):
         self._editor.setStyleSheet(
             f"QPlainTextEdit {{"
             f"  background: {BG_PANEL};"
-            f"  color: #d5def0;"
+            f"  color: #e4f0e8;"
             f"  border: none;"
             f"  padding: 10px 14px;"
             f"}}"
@@ -96,9 +100,9 @@ class LogPanel(QWidget):
             f"  background: {BG_PANEL}; width: 8px; border: none;"
             f"}}"
             f"QScrollBar::handle:vertical {{"
-            f"  background: #30415e; border-radius: 4px;"
+            f"  background: #2a3a32; border-radius: 4px;"
             f"}}"
-            f"QScrollBar::handle:vertical:hover {{ background: #45608f; }}"
+            f"QScrollBar::handle:vertical:hover {{ background: #3c5347; }}"
             f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}"
         )
         self._editor.setMaximumBlockCount(1000)

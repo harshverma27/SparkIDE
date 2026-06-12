@@ -26,10 +26,11 @@ void loop() {
 }
 """
 
-BG_EDITOR = "#0f1728"
-BG_GUTTER = "#0c1322"
-BG_HEADER = "#101a2c"
-COL_BORDER = "#263246"
+BG_EDITOR = "#101512"
+BG_GUTTER = "#0d130f"
+BG_HEADER = "#0d1310"
+COL_BORDER = "#22322a"
+FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class CppHighlighter(QSyntaxHighlighter):
@@ -56,7 +57,7 @@ class CppHighlighter(QSyntaxHighlighter):
             "for", "do", "switch", "case", "break", "continue",
             "true", "false", "HIGH", "LOW", "INPUT", "OUTPUT", "INPUT_PULLUP",
         )
-        kw_fmt = self._fmt("#c678dd", bold=True)
+        kw_fmt = self._fmt("#8aa6c4", bold=True)
         self._rules.append((
             QRegularExpression(r"\b(" + "|".join(keywords) + r")\b"), kw_fmt
         ))
@@ -67,27 +68,27 @@ class CppHighlighter(QSyntaxHighlighter):
             "abs", "sqrt", "pow", "random", "min", "max", "round",
             "Serial", "setup", "loop",
         )
-        bi_fmt = self._fmt("#61afef")
+        bi_fmt = self._fmt("#7ee2a8")
         self._rules.append((
             QRegularExpression(r"\b(" + "|".join(builtins) + r")\b"), bi_fmt
         ))
 
         # Pre-processor
-        self._rules.append((QRegularExpression(r"#\w+"), self._fmt("#e5c07b")))
+        self._rules.append((QRegularExpression(r"#\w+"), self._fmt("#f0a93e")))
 
         # Numbers
         self._rules.append((
-            QRegularExpression(r"\b\d+(\.\d+)?\b"), self._fmt("#d19a66")
+            QRegularExpression(r"\b\d+(\.\d+)?\b"), self._fmt("#d9b36a")
         ))
 
         # Strings
         self._rules.append((
-            QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), self._fmt("#98c379")
+            QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), self._fmt("#6fcfc0")
         ))
 
         # Single-line comments
         self._rules.append((
-            QRegularExpression(r"//[^\n]*"), self._fmt("#5c6370", italic=True)
+            QRegularExpression(r"//[^\n]*"), self._fmt("#5c7468", italic=True)
         ))
 
     def highlightBlock(self, text: str):
@@ -125,32 +126,35 @@ class CodePanel(QWidget):
 
         title_chip = QLabel("Generated Sketch")
         title_chip.setStyleSheet(
-            "background: #18253a; color: #eef3ff;"
+            f"background: #16201b; color: #e4f0e8; font-family: {FONT_MONO};"
             "font-size: 11px; font-weight: 700;"
-            "border-radius: 9px;"
+            "border-radius: 6px;"
             "padding: 5px 10px; letter-spacing: 0.4px;"
         )
         hl.addWidget(title_chip)
 
         self._live_dot = QLabel("Live sync")
         self._live_dot.setStyleSheet(
-            "color: #7bd8aa; font-size: 10px; margin-left: 8px; font-weight: 600;"
+            f"color: #4ade80; font-family: {FONT_MONO}; font-size: 10px; margin-left: 8px; font-weight: 600;"
         )
         hl.addWidget(self._live_dot)
         hl.addStretch()
 
         self._line_count = QLabel("0 lines")
-        self._line_count.setStyleSheet("color: #7e8aa5; font-size: 10px; margin-right: 10px;")
+        self._line_count.setStyleSheet(
+            f"color: #5c7468; font-family: {FONT_MONO}; font-size: 10px; margin-right: 10px;"
+        )
         hl.addWidget(self._line_count)
 
         # Copy button
         copy_btn = QPushButton("Copy")
         copy_btn.setFixedSize(64, 26)
         copy_btn.setStyleSheet(
-            "QPushButton { background: #18253a; color: #b2bdd2; border: 1px solid #2a3b57;"
-            " border-radius: 8px; font-size: 10px; font-weight: 600; }"
-            "QPushButton:hover { background: #21304a; color: #eef3ff; }"
-            "QPushButton:pressed { background: #142034; }"
+            f"QPushButton {{ background: #16201b; color: #93a89c; font-family: {FONT_MONO};"
+            " border: 1px solid #22322a;"
+            " border-radius: 6px; font-size: 10px; font-weight: 600; }"
+            "QPushButton:hover { background: #1c2620; color: #e4f0e8; }"
+            "QPushButton:pressed { background: #0d1310; }"
         )
         copy_btn.clicked.connect(self._copy_to_clipboard)
         hl.addWidget(copy_btn)
@@ -169,18 +173,18 @@ class CodePanel(QWidget):
         self._editor.setStyleSheet(
             f"QPlainTextEdit {{"
             f"  background: {BG_EDITOR};"
-            f"  color: #d5def0;"
+            f"  color: #e4f0e8;"
             f"  border: none;"
             f"  padding: 14px 16px;"
-            f"  selection-background-color: #29446f;"
+            f"  selection-background-color: #1d3a2c;"
             f"}}"
             f"QScrollBar:vertical {{"
             f"  background: {BG_EDITOR}; width: 10px; border: none;"
             f"}}"
             f"QScrollBar::handle:vertical {{"
-            f"  background: #30415e; border-radius: 5px; min-height: 24px;"
+            f"  background: #2a3a32; border-radius: 5px; min-height: 24px;"
             f"}}"
-            f"QScrollBar::handle:vertical:hover {{ background: #45608f; }}"
+            f"QScrollBar::handle:vertical:hover {{ background: #3c5347; }}"
             f"QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}"
         )
         self._highlighter = CppHighlighter(self._editor.document())
@@ -214,15 +218,17 @@ class CodePanel(QWidget):
         if btn:
             btn.setText("Copied")
             btn.setStyleSheet(
-                "QPushButton { background: #173224; color: #7bd8aa; border: 1px solid #25573d;"
-                " border-radius: 8px; font-size: 10px; font-weight: 600; }"
+                f"QPushButton {{ background: #173224; color: #4ade80; font-family: {FONT_MONO};"
+                " border: 1px solid #2f6b4a;"
+                " border-radius: 6px; font-size: 10px; font-weight: 600; }"
             )
             from PyQt6.QtCore import QTimer
             def _reset():
                 btn.setText("Copy")
                 btn.setStyleSheet(
-                    "QPushButton { background: #18253a; color: #b2bdd2; border: 1px solid #2a3b57;"
-                    " border-radius: 8px; font-size: 10px; font-weight: 600; }"
-                    "QPushButton:hover { background: #21304a; color: #eef3ff; }"
+                    f"QPushButton {{ background: #16201b; color: #93a89c; font-family: {FONT_MONO};"
+                    " border: 1px solid #22322a;"
+                    " border-radius: 6px; font-size: 10px; font-weight: 600; }"
+                    "QPushButton:hover { background: #1c2620; color: #e4f0e8; }"
                 )
             QTimer.singleShot(1500, _reset)

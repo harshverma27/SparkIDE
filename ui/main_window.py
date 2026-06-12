@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QToolBar, QStatusBar,
     QDockWidget, QSizePolicy, QMenu, QFileDialog, QMessageBox,
+    QGraphicsDropShadowEffect,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings
@@ -26,22 +27,23 @@ BLOCKLY_HTML = Path(__file__).parent.parent / "blockly" / "index.html"
 BUILD_DIR = Path(__file__).parent.parent / "build" / "sparkide_sketch"
 SKETCH_FILE = BUILD_DIR / "sparkide_sketch.ino"
 
-# ── Design tokens ────────────────────────────────────────────────────────────
-BG_DEEP    = "#0d1117"
-BG_DARK    = "#111827"
-BG_MID     = "#172033"
-BG_RAISED  = "#1f2a3d"
-BG_PANEL   = "#0f1728"
-BORDER     = "#263246"
-BORDER_HI  = "#425474"
-ACCENT_GRN = "#2f9e6f"
-ACCENT_GRN_HI = "#277f5a"
-ACCENT_BLU = "#2b7fff"
-ACCENT_BLU_HI = "#2367d1"
-ACCENT_GLD = "#f4b942"
-TEXT_DIM   = "#7e8aa5"
-TEXT_MID   = "#b2bdd2"
-TEXT_MAIN  = "#eef3ff"
+# ── Design tokens — "Hybrid Lab Console" (terminal/maker-lab) ──────────────────
+BG_DEEP    = "#0a0f0c"
+BG_DARK    = "#0d1310"
+BG_MID     = "#121a16"
+BG_RAISED  = "#171f1b"
+BG_PANEL   = "#101512"
+BORDER     = "#22322a"
+BORDER_HI  = "#3c5347"
+ACCENT_GRN = "#4ade80"
+ACCENT_GRN_HI = "#3fc270"
+ACCENT_AMBER = "#f0a93e"
+ACCENT_ERROR = "#f0654a"
+TEXT_DIM   = "#5c7468"
+TEXT_MID   = "#93a89c"
+TEXT_MAIN  = "#e4f0e8"
+
+FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class BoardRefreshWorker(QThread):
@@ -117,7 +119,7 @@ class MainWindow(QMainWindow):
             f"QMenuBar {{ background: {BG_DEEP}; color: {TEXT_MID}; border-bottom: 1px solid {BORDER}; }}"
             f"QMenuBar::item:selected {{ background: {BG_RAISED}; color: {TEXT_MAIN}; }}"
             f"QMenu {{ background: {BG_DARK}; color: {TEXT_MAIN}; border: 1px solid {BORDER_HI}; }}"
-            f"QMenu::item:selected {{ background: #264f78; }}"
+            f"QMenu::item:selected {{ background: #1d3a2c; }}"
         )
 
         file_menu: QMenu = mb.addMenu("&File")
@@ -166,16 +168,31 @@ class MainWindow(QMainWindow):
 
         brand = QLabel("SparkIDE")
         brand.setStyleSheet(
-            f"color: {TEXT_MAIN}; font-size: 18px; font-weight: 700;"
+            f"color: {TEXT_MAIN}; font-family: {FONT_MONO}; font-size: 18px; font-weight: 700;"
             "padding-right: 6px; letter-spacing: 0.4px;"
         )
         tb.addWidget(brand)
-        tag = QLabel("Visual Arduino Studio")
+        tag = QLabel("> visual arduino studio")
         tag.setStyleSheet(
-            f"color: {TEXT_DIM}; font-size: 11px; font-weight: 600;"
-            "padding-right: 16px; text-transform: uppercase;"
+            f"color: {TEXT_DIM}; font-family: {FONT_MONO}; font-size: 11px; font-weight: 600;"
+            "padding-right: 16px;"
         )
         tb.addWidget(tag)
+        tb.addSeparator()
+
+        # ── Workspace view controls ──────────────────────────────────────────
+        self._center_btn = self._make_icon_btn("⊙", "Center the workspace")
+        self._center_btn.clicked.connect(self._on_center_workspace)
+        tb.addWidget(self._center_btn)
+
+        self._fit_btn = self._make_icon_btn("⤢", "Zoom to fit")
+        self._fit_btn.clicked.connect(self._on_zoom_to_fit)
+        tb.addWidget(self._fit_btn)
+
+        self._reset_view_btn = self._make_icon_btn("⌫", "Reset workspace")
+        self._reset_view_btn.clicked.connect(self._on_clear)
+        tb.addWidget(self._reset_view_btn)
+
         tb.addSeparator()
 
         # ── Board selector ──────────────────────────────────────────────────
@@ -203,12 +220,12 @@ class MainWindow(QMainWindow):
         tb.addWidget(spacer)
 
         # ── Action buttons ──────────────────────────────────────────────────
-        self._compile_btn = self._make_btn("⚡  Compile", color=ACCENT_GRN, hover=ACCENT_GRN_HI,
+        self._compile_btn = self._make_btn("⚡  Compile", outline=True,
                                            tooltip="Compile sketch (arduino-cli)")
         self._compile_btn.clicked.connect(self._on_compile)
         tb.addWidget(self._compile_btn)
 
-        self._upload_btn = self._make_btn("⬆  Upload", color=ACCENT_BLU, hover=ACCENT_BLU_HI,
+        self._upload_btn = self._make_btn("⬆  Upload", color=ACCENT_GRN, hover=ACCENT_GRN_HI,
                                           tooltip="Compile & upload to board")
         self._upload_btn.clicked.connect(self._on_upload)
         tb.addWidget(self._upload_btn)
@@ -245,7 +262,7 @@ class MainWindow(QMainWindow):
         frame.setStyleSheet(
             f"background: {BG_PANEL};"
             f"border: 1px solid {BORDER};"
-            f"border-radius: 18px;"
+            f"border-radius: 8px;"
         )
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
@@ -261,6 +278,7 @@ class MainWindow(QMainWindow):
         self._web_view.page().setWebChannel(self._channel)
         self._bridge.set_page(self._web_view.page())
         self._bridge.code_changed.connect(self._code_panel.update_code)
+        self._bridge.block_count_changed.connect(self._update_block_count)
 
     # ── Log dock ──────────────────────────────────────────────────────────────
 
@@ -276,7 +294,7 @@ class MainWindow(QMainWindow):
         )
         dock.setMinimumHeight(130)
         dock.setStyleSheet(
-            f"QDockWidget {{ color: {TEXT_MID}; font-size: 11px; }}"
+            f"QDockWidget {{ color: {TEXT_MID}; font-family: {FONT_MONO}; font-size: 11px; }}"
             f"QDockWidget::title {{"
             f"  background: {BG_DEEP};"
             f"  padding: 5px 8px;"
@@ -289,36 +307,56 @@ class MainWindow(QMainWindow):
 
     def _build_status_bar(self):
         sb = QStatusBar()
-        sb.setFixedHeight(26)
+        sb.setFixedHeight(32)
         sb.setStyleSheet(
             f"QStatusBar {{ background: {BG_DEEP}; border-top: 1px solid {BORDER}; }}"
             f"QStatusBar::item {{ border: none; }}"
         )
         self.setStatusBar(sb)
 
-        # Board pill
-        self._sb_board = self._status_pill("💻", "Board", "#264f78")
+        # Telemetry readouts
+        self._sb_board = self._status_pill()
         sb.addWidget(self._sb_board)
 
-        # Port pill
-        self._sb_port = self._status_pill("🔌", "Port", "#2d5a27")
+        self._sb_port = self._status_pill()
         sb.addWidget(self._sb_port)
+
+        self._sb_blocks = self._status_pill()
+        sb.addWidget(self._sb_blocks)
 
         # Status indicator (right side)
         self._sb_status = QLabel("● Idle")
-        self._sb_status.setStyleSheet(f"color: #4e9a51; font-size: 11px; padding: 0 10px;")
         sb.addPermanentWidget(self._sb_status)
 
         self._update_status()
+        self._update_block_count(0)
+        self._set_status("● Idle", ACCENT_GRN)
 
     @staticmethod
-    def _status_pill(icon: str, label: str, bg: str) -> QLabel:
-        lbl = QLabel(f"  {icon}  {label}  ")
+    def _status_pill() -> QLabel:
+        lbl = QLabel()
+        lbl.setTextFormat(Qt.TextFormat.RichText)
         lbl.setStyleSheet(
-            f"QLabel {{ background: {bg}22; color: {TEXT_MID}; font-size: 11px;"
-            f" padding: 3px 10px; border: 1px solid {bg}44; border-radius: 10px; margin: 3px 4px; }}"
+            f"QLabel {{ background: {BG_PANEL}; color: {TEXT_MID}; font-family: {FONT_MONO};"
+            f" font-size: 11px; padding: 3px 10px; border: 1px solid {BORDER};"
+            f" border-radius: 6px; margin: 3px 4px; }}"
         )
         return lbl
+
+    @staticmethod
+    def _pill_html(label: str, value: str, accent: str) -> str:
+        return (
+            f'<span style="color:{accent};">■</span>&nbsp;'
+            f'<span style="color:{TEXT_DIM};">{label}</span> {value}'
+        )
+
+    @staticmethod
+    def _apply_glow(widget: QWidget, colour: str):
+        effect = QGraphicsDropShadowEffect(widget)
+        effect.setColor(QColor(colour))
+        effect.setBlurRadius(14)
+        effect.setOffset(0, 0)
+        widget.setGraphicsEffect(effect)
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -396,9 +434,13 @@ class MainWindow(QMainWindow):
         port  = p.currentText() if p else "—"
 
         if hasattr(self, "_sb_board"):
-            self._sb_board.setText(f"  💻  {board}  ")
+            self._sb_board.setText(self._pill_html("BOARD:", board, ACCENT_GRN))
         if hasattr(self, "_sb_port"):
-            self._sb_port.setText(f"  🔌  {port}  ")
+            self._sb_port.setText(self._pill_html("PORT:", port, ACCENT_GRN))
+
+    def _update_block_count(self, count: int):
+        if hasattr(self, "_sb_blocks"):
+            self._sb_blocks.setText(self._pill_html("BLOCKS:", str(count), ACCENT_AMBER))
 
     def _on_boards_loaded(self, boards: list, ports: list, error: str):
         if hasattr(self, "_refresh_btn"):
@@ -427,13 +469,13 @@ class MainWindow(QMainWindow):
 
         if error:
             self._log_panel.append_line(error, "error")
-            self._set_status("● CLI error", "#e06c75")
+            self._set_status("● CLI error", ACCENT_ERROR)
         elif ports:
             self._log_panel.append_line(f"Found {len(ports)} port(s).", "success")
-            self._set_status("● Ready", "#4e9a51")
+            self._set_status("● Ready", ACCENT_GRN)
         else:
             self._log_panel.append_line("No serial ports detected. Compile is available; upload needs a connected board.", "warning")
-            self._set_status("● No port", "#e5c07b")
+            self._set_status("● No port", ACCENT_AMBER)
 
         self._update_status()
 
@@ -446,7 +488,7 @@ class MainWindow(QMainWindow):
             return
 
         self._set_busy(True)
-        self._set_status("● Working", "#e5c07b")
+        self._set_status("● Working", ACCENT_AMBER)
         self._log_panel.append_line(f"Starting {action} for {fqbn}...", "info")
         self._job_worker = ArduinoJobWorker(action, fqbn, port, code, self)
         self._job_worker.line.connect(self._log_panel.append_line)
@@ -456,7 +498,7 @@ class MainWindow(QMainWindow):
     def _on_job_finished(self, ok: bool, message: str):
         self._log_panel.append_line(message, "success" if ok else "error")
         self._set_busy(False)
-        self._set_status("● Ready" if ok else "● Failed", "#4e9a51" if ok else "#e06c75")
+        self._set_status("● Ready" if ok else "● Failed", ACCENT_GRN if ok else ACCENT_ERROR)
 
     def _selected_board(self) -> BoardOption | None:
         return self._board_combo.currentData()
@@ -474,7 +516,16 @@ class MainWindow(QMainWindow):
     def _set_status(self, text: str, colour: str):
         if hasattr(self, "_sb_status"):
             self._sb_status.setText(text)
-            self._sb_status.setStyleSheet(f"color: {colour}; font-size: 11px; padding: 0 10px;")
+            self._sb_status.setStyleSheet(
+                f"color: {colour}; font-family: {FONT_MONO}; font-size: 11px; padding: 0 10px;"
+            )
+            self._apply_glow(self._sb_status, colour)
+
+    def _on_center_workspace(self):
+        self._web_view.page().runJavaScript("window.centerWorkspace();")
+
+    def _on_zoom_to_fit(self):
+        self._web_view.page().runJavaScript("window.zoomToFitWorkspace();")
 
     def _show_warning(self, text: str):
         self._log_panel.append_line(text, "warning")
@@ -486,7 +537,7 @@ class MainWindow(QMainWindow):
     def _tb_label(text: str) -> QLabel:
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            f"color: {TEXT_DIM}; font-size: 10px; font-weight: 700;"
+            f"color: {TEXT_DIM}; font-family: {FONT_MONO}; font-size: 10px; font-weight: 700;"
             f" letter-spacing: 0.5px; margin-left: 6px; margin-right: 2px;"
         )
         return lbl
@@ -498,37 +549,46 @@ class MainWindow(QMainWindow):
         cb.setFixedWidth(width)
         cb.setFixedHeight(34)
         cb.setStyleSheet(
-            f"QComboBox {{ background: {BG_RAISED}; color: {TEXT_MAIN};"
-            f" border: 1px solid {BORDER}; border-radius: 10px; padding: 4px 12px;"
+            f"QComboBox {{ background: {BG_RAISED}; color: {TEXT_MAIN}; font-family: {FONT_MONO};"
+            f" border: 1px solid {BORDER}; border-radius: 6px; padding: 4px 12px;"
             f" font-size: 12px; }}"
             f"QComboBox:hover {{ border: 1px solid {BORDER_HI}; }}"
             f"QComboBox::drop-down {{ border: none; width: 24px; }}"
             f"QComboBox QAbstractItemView {{ background: {BG_DARK}; color: {TEXT_MAIN};"
-            f" border: 1px solid {BORDER_HI}; selection-background-color: #244b88; }}"
+            f" border: 1px solid {BORDER_HI}; selection-background-color: #1d3a2c; }}"
         )
         return cb
 
     @staticmethod
     def _make_btn(label: str, color: str = "", hover: str = "",
-                  secondary: bool = False, tooltip: str = "") -> QPushButton:
+                  secondary: bool = False, outline: bool = False, tooltip: str = "") -> QPushButton:
         btn = QPushButton(label)
         btn.setFixedHeight(34)
         if tooltip:
             btn.setToolTip(tooltip)
         if secondary:
             btn.setStyleSheet(
-                f"QPushButton {{ background: {BG_RAISED}; color: {TEXT_MID};"
-                f" border: 1px solid {BORDER}; border-radius: 10px;"
+                f"QPushButton {{ background: {BG_RAISED}; color: {TEXT_MID}; font-family: {FONT_MONO};"
+                f" border: 1px solid {BORDER}; border-radius: 6px;"
                 f" padding: 0 12px; font-size: 12px; font-weight: 600; }}"
-                f"QPushButton:hover {{ background: #28354a; color: {TEXT_MAIN};"
+                f"QPushButton:hover {{ background: #1c2620; color: {TEXT_MAIN};"
                 f" border-color: {BORDER_HI}; }}"
                 f"QPushButton:pressed {{ background: {BG_DARK}; }}"
+            )
+        elif outline:
+            btn.setFixedWidth(124)
+            btn.setStyleSheet(
+                f"QPushButton {{ background: transparent; color: {ACCENT_GRN}; font-family: {FONT_MONO};"
+                f" border: 1px solid {ACCENT_GRN}; border-radius: 6px;"
+                f" padding: 0 16px; font-size: 12px; font-weight: 700; }}"
+                f"QPushButton:hover {{ background: rgba(74, 222, 128, 0.12); }}"
+                f"QPushButton:pressed {{ background: rgba(74, 222, 128, 0.2); }}"
             )
         else:
             btn.setFixedWidth(124)
             btn.setStyleSheet(
-                f"QPushButton {{ background: {color}; color: #ffffff;"
-                f" border: none; border-radius: 10px;"
+                f"QPushButton {{ background: {color}; color: {BG_DEEP}; font-family: {FONT_MONO};"
+                f" border: none; border-radius: 6px;"
                 f" padding: 0 16px; font-size: 12px; font-weight: 700; }}"
                 f"QPushButton:hover {{ background: {hover}; }}"
                 f"QPushButton:pressed {{ background: {hover}; }}"
@@ -536,15 +596,28 @@ class MainWindow(QMainWindow):
         return btn
 
     @staticmethod
+    def _make_icon_btn(symbol: str, tooltip: str) -> QPushButton:
+        btn = QPushButton(symbol)
+        btn.setFixedSize(32, 34)
+        btn.setToolTip(tooltip)
+        btn.setStyleSheet(
+            f"QPushButton {{ background: {BG_RAISED}; color: {TEXT_MID}; font-family: {FONT_MONO};"
+            f" border: 1px solid {BORDER}; border-radius: 6px; font-size: 13px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: #1c2620; color: {ACCENT_GRN}; border-color: {BORDER_HI}; }}"
+            f"QPushButton:pressed {{ background: {BG_DARK}; }}"
+        )
+        return btn
+
+    @staticmethod
     def _window_stylesheet() -> str:
         return (
             f"QMainWindow {{"
             f"  background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
-            f"    stop:0 {BG_DEEP}, stop:0.5 {BG_MID}, stop:1 #101726);"
+            f"    stop:0 {BG_DEEP}, stop:0.5 {BG_MID}, stop:1 #0c130f);"
             f"}}"
             f"QLabel {{ color: {TEXT_MAIN}; }}"
             f"QToolTip {{"
-            f"  background: {BG_PANEL}; color: {TEXT_MAIN};"
+            f"  background: {BG_PANEL}; color: {TEXT_MAIN}; font-family: {FONT_MONO};"
             f"  border: 1px solid {BORDER_HI}; padding: 6px 8px;"
             f"}}"
         )

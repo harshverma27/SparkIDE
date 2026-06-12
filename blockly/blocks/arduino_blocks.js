@@ -16,7 +16,7 @@ Blockly.Blocks['arduino_setup_loop'] = {
         .appendField('▶  Run once at start');
     this.appendStatementInput('LOOP').setCheck(null)
         .appendField('🔁  Repeat forever');
-    this.setColour(120);
+    this.setColour(140);
     this.setTooltip('"Run once at start" happens when you first power on. "Repeat forever" keeps running until you unplug it.');
     this.setDeletable(false);
   }
@@ -39,7 +39,7 @@ Blockly.Blocks['arduino_pinmode'] = {
         ]), 'MODE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Tell the Arduino whether a pin will send signals out (LED) or read signals in (button/sensor). Do this once in "Run once at start".');
   }
 };
@@ -55,7 +55,7 @@ Blockly.Blocks['arduino_digitalwrite'] = {
         ]), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Send power to a pin (ON = 5V = LED on) or cut it (OFF = 0V = LED off).');
   }
 };
@@ -68,7 +68,7 @@ Blockly.Blocks['arduino_digitalread'] = {
         .appendField(new Blockly.FieldNumber(2, 0, 53), 'PIN')
         .appendField('(ON or OFF ?)');
     this.setOutput(true, 'Number');
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Check whether a pin has power (ON/HIGH) or not (OFF/LOW). Plug into an "if" or comparison block.');
   }
 };
@@ -85,7 +85,7 @@ Blockly.Blocks['arduino_analogread'] = {
         .appendField(new Blockly.FieldNumber(0, 0, 5), 'PIN')
         .appendField('(0 – 1023)');
     this.setOutput(true, 'Number');
-    this.setColour(160);
+    this.setColour(185);
     this.setTooltip('Reads a sensor (like a potentiometer or light sensor) and gives a number from 0 (no voltage) to 1023 (full voltage).');
   }
 };
@@ -103,7 +103,7 @@ Blockly.Blocks['arduino_analogwrite'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(160);
+    this.setColour(185);
     this.setTooltip('Control the brightness of an LED or speed of a motor. 0 = fully off, 255 = fully on. Pin must support "~" (PWM).');
   }
 };
@@ -124,7 +124,7 @@ Blockly.Blocks['arduino_map'] = {
         .appendField(new Blockly.FieldNumber(255), 'TO_HIGH')
         .appendField(']');
     this.setOutput(true, 'Number');
-    this.setColour(160);
+    this.setColour(185);
     this.setTooltip('Converts a number from one range into another. e.g. turn a sensor reading (0–1023) into an LED brightness (0–255).');
   }
 };
@@ -141,7 +141,7 @@ Blockly.Blocks['arduino_delay'] = {
         .appendField('milliseconds  (1000 ms = 1 second)');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(30);
+    this.setColour(42);
     this.setTooltip('Pause the program. Nothing else happens during this wait. 1000 ms = 1 second.');
   }
 };
@@ -154,7 +154,7 @@ Blockly.Blocks['arduino_delay_microseconds'] = {
         .appendField('microseconds  (1 000 000 µs = 1 second)');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(30);
+    this.setColour(42);
     this.setTooltip('Extremely short pause — useful for precise timing (e.g. ultrasonic sensor pulses).');
   }
 };
@@ -164,7 +164,7 @@ Blockly.Blocks['arduino_millis'] = {
   init: function () {
     this.appendDummyInput().appendField('⏱ Time since start (in ms)');
     this.setOutput(true, 'Number');
-    this.setColour(30);
+    this.setColour(42);
     this.setTooltip('How many milliseconds have passed since the Arduino was turned on. Useful for non-blocking timers.');
   }
 };
@@ -183,7 +183,7 @@ Blockly.Blocks['arduino_variable_int'] = {
         .appendField(new Blockly.FieldNumber(0), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Creates a whole number (integer) variable and gives it a starting value.');
   }
 };
@@ -200,7 +200,7 @@ Blockly.Blocks['arduino_variable_int_expr'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Create a number variable and set it to the result of a sensor reading, math, etc.');
   }
 };
@@ -217,7 +217,7 @@ Blockly.Blocks['arduino_variable_assign'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Update an existing variable with a new value or sensor reading.');
   }
 };
@@ -234,7 +234,7 @@ Blockly.Blocks['arduino_variable_bool'] = {
         ]), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('A variable that can only be "yes" (true) or "no" (false). Good for on/off flags.');
   }
 };
@@ -254,7 +254,7 @@ Blockly.Blocks['arduino_serial_begin'] = {
         .appendField('speed');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Turns on the Serial Monitor so you can see messages from your Arduino. Add this to "Run once at start". Use 9600 if unsure.');
   }
 };
@@ -267,7 +267,7 @@ Blockly.Blocks['arduino_serial_print'] = {
         .appendField('on Serial Monitor');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Prints text to the Serial Monitor. The next print continues on the same line.');
   }
 };
@@ -280,7 +280,7 @@ Blockly.Blocks['arduino_serial_println'] = {
         .appendField('on Serial Monitor  + new line');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Prints text then moves to a new line, like pressing Enter.');
   }
 };
@@ -294,7 +294,7 @@ Blockly.Blocks['arduino_serial_print_expr'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Shows a sensor value, variable, or calculation result in the Serial Monitor.');
   }
 };
@@ -307,7 +307,7 @@ Blockly.Blocks['arduino_serial_println_expr'] = {
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Shows a value in the Serial Monitor and then starts a new line.');
   }
 };
@@ -317,7 +317,7 @@ Blockly.Blocks['arduino_serial_available'] = {
   init: function () {
     this.appendDummyInput().appendField('Bytes waiting in Serial inbox');
     this.setOutput(true, 'Number');
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Returns how many bytes are waiting to be read from the computer. Use in an "if" block to check before reading.');
   }
 };
@@ -327,7 +327,7 @@ Blockly.Blocks['arduino_serial_read'] = {
   init: function () {
     this.appendDummyInput().appendField('Read next byte from Serial');
     this.setOutput(true, 'Number');
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Read a single byte sent from your computer. Returns -1 if nothing is available.');
   }
 };
@@ -338,7 +338,7 @@ Blockly.Blocks['arduino_serial_flush'] = {
     this.appendDummyInput().appendField('Wait for Serial to finish sending');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(270);
+    this.setColour(185);
     this.setTooltip('Pauses until all outgoing Serial data has been fully transmitted.');
   }
 };
@@ -355,7 +355,7 @@ Blockly.Blocks['arduino_pin_toggle'] = {
         .appendField('(ON → OFF  or  OFF → ON)');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Switches a pin to the opposite state. Great for blinking an LED without knowing its current state.');
   }
 };
@@ -375,7 +375,7 @@ Blockly.Blocks['arduino_constrain'] = {
     this.appendValueInput('MAX').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(160);
+    this.setColour(185);
     this.setTooltip('Clamps a value so it never goes below the minimum or above the maximum. Useful for keeping sensor data in range.');
   }
 };
@@ -394,7 +394,7 @@ Blockly.Blocks['arduino_variable_float'] = {
         .appendField(new Blockly.FieldNumber(0.0), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Creates a variable that can hold decimal numbers like 3.14 or 0.75.');
   }
 };
@@ -410,7 +410,7 @@ Blockly.Blocks['arduino_variable_string'] = {
         .appendField('"');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Creates a variable that holds a piece of text (a "String").');
   }
 };
@@ -422,7 +422,7 @@ Blockly.Blocks['arduino_variable_get'] = {
         .appendField('Value of variable')
         .appendField(new Blockly.FieldTextInput('myNumber'), 'NAME');
     this.setOutput(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Reads the current value of a variable. Plug this into math, logic, or other blocks.');
   }
 };
@@ -443,7 +443,7 @@ Blockly.Blocks['arduino_variable_compound'] = {
         .appendField(new Blockly.FieldNumber(1), 'VALUE');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(330);
+    this.setColour(222);
     this.setTooltip('Modify a variable: add to it, subtract, multiply, divide, or reset to zero.');
   }
 };
@@ -460,7 +460,7 @@ Blockly.Blocks['arduino_math_modulo'] = {
     this.appendValueInput('B').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('The remainder after dividing A by B. e.g. 7 remainder ÷ 3 = 1. Useful for "every Nth time" patterns.');
   }
 };
@@ -472,7 +472,7 @@ Blockly.Blocks['arduino_math_abs'] = {
     this.appendValueInput('VALUE').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Always returns a positive number — removes the minus sign. e.g. absolute value of -5 = 5.');
   }
 };
@@ -484,7 +484,7 @@ Blockly.Blocks['arduino_math_sqrt'] = {
     this.appendValueInput('VALUE').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Returns the square root of a number. e.g. √9 = 3.');
   }
 };
@@ -497,7 +497,7 @@ Blockly.Blocks['arduino_math_pow'] = {
     this.appendValueInput('EXP').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Raises a number to a power. e.g. 2 to the power of 3 = 8.');
   }
 };
@@ -511,7 +511,7 @@ Blockly.Blocks['arduino_math_random'] = {
         .appendField('to')
         .appendField(new Blockly.FieldNumber(100), 'MAX');
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Picks a random whole number between the two limits (min is included, max is excluded).');
   }
 };
@@ -524,7 +524,7 @@ Blockly.Blocks['arduino_math_round'] = {
     this.appendDummyInput().appendField('to nearest whole number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Rounds a decimal number to the nearest whole number. e.g. 3.7 → 4, 3.2 → 3.');
   }
 };
@@ -538,7 +538,7 @@ Blockly.Blocks['arduino_math_min'] = {
     this.appendValueInput('B').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Returns whichever of the two numbers is smaller.');
   }
 };
@@ -552,7 +552,7 @@ Blockly.Blocks['arduino_math_max'] = {
     this.appendValueInput('B').setCheck('Number');
     this.setInputsInline(true);
     this.setOutput(true, 'Number');
-    this.setColour(230);
+    this.setColour(42);
     this.setTooltip('Returns whichever of the two numbers is larger.');
   }
 };
@@ -566,7 +566,7 @@ Blockly.Blocks['arduino_break'] = {
   init: function () {
     this.appendDummyInput().appendField('🛑  Stop loop now');
     this.setPreviousStatement(true, null);
-    this.setColour(120);
+    this.setColour(140);
     this.setTooltip('Immediately exits the current loop. Nothing after this in the loop will run.');
   }
 };
@@ -577,7 +577,7 @@ Blockly.Blocks['arduino_continue'] = {
     this.appendDummyInput().appendField('⏭  Skip to next repeat');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(120);
+    this.setColour(140);
     this.setTooltip('Skips the rest of this loop pass and starts the next one immediately.');
   }
 };
@@ -592,7 +592,7 @@ Blockly.Blocks['arduino_do_while'] = {
     this.setInputsInline(false);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(120);
+    this.setColour(140);
     this.setTooltip('Runs the blocks inside at least once, then keeps repeating as long as the condition is true.');
   }
 };
@@ -606,7 +606,7 @@ Blockly.Blocks['arduino_micros'] = {
   init: function () {
     this.appendDummyInput().appendField('⏱ Time since start (in µs)');
     this.setOutput(true, 'Number');
-    this.setColour(30);
+    this.setColour(42);
     this.setTooltip('Like "Time since start (ms)" but in microseconds — 1000× more precise. Overflows after ~70 minutes.');
   }
 };
@@ -628,7 +628,7 @@ Blockly.Blocks['arduino_led_blink'] = {
         .appendField('ms between each');
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Blinks an LED a set number of times. The pause controls how fast it blinks.');
   }
 };
@@ -645,7 +645,7 @@ Blockly.Blocks['arduino_button_pressed'] = {
         .appendField(new Blockly.FieldNumber(2, 0, 53), 'PIN')
         .appendField('is being pressed');
     this.setOutput(true, 'Boolean');
-    this.setColour(210);
+    this.setColour(185);
     this.setTooltip('Returns YES if the button is currently pressed. Wire button between pin and GND, and set pin to "Input with Pull-up".');
   }
 };

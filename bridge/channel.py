@@ -17,6 +17,9 @@ class Bridge(QObject):
     # Emitted whenever Blockly generates new C++ code; connected to CodePanel
     code_changed = pyqtSignal(str)
 
+    # Emitted whenever the workspace block count changes; connected to the telemetry strip
+    block_count_changed = pyqtSignal(int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._page = None  # set by MainWindow via set_page() after page is ready
@@ -55,3 +58,11 @@ class Bridge(QObject):
         Emits code_changed so the CodePanel updates in real time.
         """
         self.code_changed.emit(cpp_code)
+
+    @pyqtSlot(int)
+    def on_block_count_update(self, count: int) -> None:
+        """
+        Called from JavaScript every time the Blockly workspace changes.
+        Emits block_count_changed so the telemetry strip updates.
+        """
+        self.block_count_changed.emit(count)
