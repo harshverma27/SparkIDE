@@ -150,10 +150,11 @@ This runs the full `pytest` suite covering the `arduino-cli` wrapper, Blockly/br
 - [x] **v0.1 — Foundation**: Native PyQt6 shell, offline Blockly integration, 50+ Arduino blocks, live C++ generation, workspace save/load.
 - [x] **v0.2 — Hardware Execution**: `arduino-cli` integration, board/port discovery, one-click compile & upload, live build logs.
 - [x] **v1.0 — Hybrid Lab Console**: Full visual redesign with a terminal/maker-lab aesthetic, consolidated Blockly category palette, and a status-bar telemetry strip.
+- [x] **Advanced Blocks — User-defined functions**: Functions toolbox category with parameters and return values, multi-pass C++ generation (prototypes + definitions emitted above `setup()`/`loop()`).
 
 ### Next Upgrades
 
-- [ ] **Advanced Blocks**: User-defined functions (multi-pass C++ generation), Servo motor support (`#include <Servo.h>`), and non-blocking timers.
+- [ ] **Advanced Blocks**: Servo motor support (`#include <Servo.h>`) and non-blocking timers.
 - [ ] **Serial Monitor**: Built-in serial console with baud-rate selection.
 - [ ] **Memory Gauges**: Parse flash/RAM usage from compile output and render usage bars.
 

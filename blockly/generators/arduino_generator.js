@@ -22,6 +22,54 @@ ArduinoGenerator.ORDER_LOGICAL_AND   = 13;  // &&
 ArduinoGenerator.ORDER_LOGICAL_OR    = 14;  // ||
 ArduinoGenerator.ORDER_NONE          = 99;
 
+// C++/Arduino identifiers user functions and variables must not shadow.
+ArduinoGenerator.addReservedWords(
+  'setup,loop,if,else,for,while,do,break,continue,return,switch,case,default,' +
+  'void,int,long,float,double,bool,boolean,char,byte,word,String,unsigned,' +
+  'short,signed,const,static,volatile,true,false,' +
+  'HIGH,LOW,INPUT,OUTPUT,INPUT_PULLUP,LED_BUILTIN,' +
+  'pinMode,digitalWrite,digitalRead,analogRead,analogWrite,' +
+  'delay,delayMicroseconds,millis,micros,' +
+  'map,constrain,abs,min,max,pow,sqrt,round,random,Serial'
+);
+
+// ── Multi-pass generation ────────────────────────────────────────────────────
+// Pass 1: every function-definition block stores its prototype + definition
+// here (and returns null, so nothing leaks into the setup/loop stream).
+// Pass 2: finish() emits prototypes, then definitions, then setup()/loop().
+
+ArduinoGenerator.init = function (workspace) {
+  this.definitions_ = Object.create(null);
+  this.prototypes_  = Object.create(null);
+  if (!this.nameDB_) {
+    this.nameDB_ = new Blockly.Names(this.RESERVED_WORDS_);
+  } else {
+    this.nameDB_.reset();
+  }
+  this.nameDB_.setVariableMap(workspace.getVariableMap());
+  this.nameDB_.populateVariables(workspace);
+  this.nameDB_.populateProcedures(workspace);
+};
+
+ArduinoGenerator.finish = function (code) {
+  var sections   = [];
+  var prototypes = Object.values(this.prototypes_);
+  var defs       = Object.values(this.definitions_);
+  if (prototypes.length) sections.push(prototypes.join('\n'));
+  if (defs.length)       sections.push(defs.join('\n\n'));
+  if (code)              sections.push(code);
+  return sections.join('\n\n');
+};
+
+// Follow next-statement connections so whole block chains generate code.
+ArduinoGenerator.scrub_ = function (block, code, thisOnly) {
+  var nextBlock = block.nextConnection && block.nextConnection.targetBlock();
+  if (nextBlock && !thisOnly) {
+    return code + this.blockToCode(nextBlock);
+  }
+  return code;
+};
+
 // ════════════════════════════════════════════════════════════════════════════
 // STRUCTURE
 // ════════════════════════════════════════════════════════════════════════════
@@ -438,4 +486,56 @@ ArduinoGenerator.forBlock['arduino_led_blink'] = function (block, generator) {
 ArduinoGenerator.forBlock['arduino_button_pressed'] = function (block, generator) {
   var pin = block.getFieldValue('PIN');
   return ['(digitalRead(' + pin + ') == LOW)', ArduinoGenerator.ORDER_EQUALITY];
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// FUNCTIONS (built-in Blockly procedure blocks)
+// Parameters and return values are typed `int`, matching the integer-centric
+// block set. Definitions are emitted above setup()/loop() — see finish().
+// ════════════════════════════════════════════════════════════════════════════
+
+ArduinoGenerator.forBlock['procedures_defreturn'] = function (block, generator) {
+  var funcName  = generator.getProcedureName(block.getFieldValue('NAME'));
+  var hasReturn = block.type === 'procedures_defreturn';
+  var branch    = generator.statementToCode(block, 'STACK');
+  var args      = block.getVars().map(function (v) {
+    return 'int ' + generator.getVariableName(v);
+  });
+  var returnType = hasReturn ? 'int' : 'void';
+  if (hasReturn) {
+    var returnValue = generator.valueToCode(block, 'RETURN', ArduinoGenerator.ORDER_NONE) || '0';
+    branch += generator.INDENT + 'return ' + returnValue + ';\n';
+  }
+  var signature = returnType + ' ' + funcName + '(' + args.join(', ') + ')';
+  generator.prototypes_[funcName]  = signature + ';';
+  generator.definitions_[funcName] = signature + ' {\n' + branch + '}';
+  return null;
+};
+
+ArduinoGenerator.forBlock['procedures_defnoreturn'] =
+  ArduinoGenerator.forBlock['procedures_defreturn'];
+
+ArduinoGenerator.forBlock['procedures_callreturn'] = function (block, generator) {
+  var funcName = generator.getProcedureName(block.getFieldValue('NAME'));
+  var args = block.getVars().map(function (_, i) {
+    return generator.valueToCode(block, 'ARG' + i, ArduinoGenerator.ORDER_NONE) || '0';
+  });
+  return [funcName + '(' + args.join(', ') + ')', ArduinoGenerator.ORDER_ATOMIC];
+};
+
+ArduinoGenerator.forBlock['procedures_callnoreturn'] = function (block, generator) {
+  var tuple = ArduinoGenerator.forBlock['procedures_callreturn'](block, generator);
+  return tuple[0] + ';\n';
+};
+
+ArduinoGenerator.forBlock['procedures_ifreturn'] = function (block, generator) {
+  var condition = generator.valueToCode(block, 'CONDITION', ArduinoGenerator.ORDER_NONE) || 'false';
+  var code = 'if (' + condition + ') {\n';
+  if (block.hasReturnValue_) {
+    var value = generator.valueToCode(block, 'VALUE', ArduinoGenerator.ORDER_NONE) || '0';
+    code += generator.INDENT + 'return ' + value + ';\n';
+  } else {
+    code += generator.INDENT + 'return;\n';
+  }
+  return code + '}\n';
 };

@@ -6,6 +6,29 @@
  */
 
 // ════════════════════════════════════════════════════════════════════════════
+// FUNCTIONS — friendly labels for the built-in Blockly procedure blocks
+// (this file loads after vendor/en.js, so these override the stock strings)
+// ════════════════════════════════════════════════════════════════════════════
+
+Blockly.Msg['PROCEDURES_DEFNORETURN_TITLE'] = '🔧 Make a function called';
+Blockly.Msg['PROCEDURES_DEFRETURN_TITLE'] = '🔧 Make a function called';
+Blockly.Msg['PROCEDURES_DEFNORETURN_PROCEDURE'] = 'do something';
+Blockly.Msg['PROCEDURES_DEFRETURN_PROCEDURE'] = 'do something';
+Blockly.Msg['PROCEDURES_DEFRETURN_RETURN'] = 'give back';
+Blockly.Msg['PROCEDURES_BEFORE_PARAMS'] = 'using:';
+Blockly.Msg['PROCEDURES_CALL_BEFORE_PARAMS'] = 'using:';
+Blockly.Msg['PROCEDURES_DEFNORETURN_TOOLTIP'] =
+  'Teach the Arduino a new trick! Group blocks into a function you can reuse anywhere.';
+Blockly.Msg['PROCEDURES_DEFRETURN_TOOLTIP'] =
+  'A function that calculates something and gives back a number.';
+Blockly.Msg['PROCEDURES_CALLNORETURN_TOOLTIP'] =
+  'Run the blocks inside the function "%1".';
+Blockly.Msg['PROCEDURES_CALLRETURN_TOOLTIP'] =
+  'Run the function "%1" and use the number it gives back.';
+Blockly.Msg['PROCEDURES_IFRETURN_TOOLTIP'] =
+  'If the condition is true, leave the function right away (optionally giving back a value).';
+
+// ════════════════════════════════════════════════════════════════════════════
 // STRUCTURE
 // ════════════════════════════════════════════════════════════════════════════
 

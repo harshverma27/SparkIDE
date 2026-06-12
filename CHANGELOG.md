@@ -4,6 +4,15 @@ All notable changes to SparkIDE are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- User-defined function blocks: new "Functions" toolbox category (Blockly procedure blocks) supporting `int` parameters, return values, and early return. Function prototypes and definitions are emitted above `setup()`/`loop()` via multi-pass generation.
+- Headless Node test harness (`tests/generate_code.js`) so pytest can assert real generated C++.
+
+### Fixed
+- Statement chains now generate code for every block: previously only the first block connected under `setup()`, `loop()`, or any statement input was emitted (the generator never followed next-block connections).
+
 ## [1.0.0] — 2026-06-12
 
 ### Added
