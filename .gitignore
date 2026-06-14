@@ -18,6 +18,9 @@ build/
 .vscode/
 .idea/
 *.swp
+.codex
+.claude
+.agents
 
 
 # Project Specific

@@ -145,6 +145,11 @@ This runs the full `pytest` suite covering the `arduino-cli` wrapper, Blockly/br
 
 ## 🛣️ Roadmap
 
+SparkIDE is evolving from a strong single-developer v1.0 into a **community-grade,
+professional, cross-platform IDE** — balancing open-source maturity, feature depth,
+and education reach. The full plan lives in
+[`docs/superpowers/specs/2026-06-15-professional-ide-roadmap.md`](docs/superpowers/specs/2026-06-15-professional-ide-roadmap.md).
+
 ### Shipped
 
 - [x] **v0.1 — Foundation**: Native PyQt6 shell, offline Blockly integration, 50+ Arduino blocks, live C++ generation, workspace save/load.
@@ -152,11 +157,19 @@ This runs the full `pytest` suite covering the `arduino-cli` wrapper, Blockly/br
 - [x] **v1.0 — Hybrid Lab Console**: Full visual redesign with a terminal/maker-lab aesthetic, consolidated Blockly category palette, and a status-bar telemetry strip.
 - [x] **Advanced Blocks — User-defined functions**: Functions toolbox category with parameters and return values, multi-pass C++ generation (prototypes + definitions emitted above `setup()`/`loop()`).
 
-### Next Upgrades
+### The road to 2.0 — 8 phases
 
-- [ ] **Advanced Blocks**: Servo motor support (`#include <Servo.h>`) and non-blocking timers.
-- [ ] **Serial Monitor**: Built-in serial console with baud-rate selection.
-- [ ] **Memory Gauges**: Parse flash/RAM usage from compile output and render usage bars.
+Each phase is a shippable release. Infrastructure and feature phases are interleaved
+so every release is both stable and exciting.
+
+- [ ] **Phase 1 — Foundation Hardening** *(infra)*: GitHub Actions CI, `ruff`/`black` + pre-commit, expanded tests, contributor docs and templates, release automation, and a refactor of `main_window.py` into focused modules.
+- [ ] **Phase 2 — Serial Monitor & Hardware UX** *(features)*: built-in serial console with baud selection, serial plotter, flash/RAM memory gauges, in-app core/board management.
+- [ ] **Phase 3 — Editor Depth & Dual-Mode** *(features)*: editable text/code mode alongside blocks, multi-file projects with tabs, recent-files, autosave.
+- [ ] **Phase 4 — Cross-Platform Packaging** *(infra)*: Windows + macOS support, bundled `arduino-cli`, AppImage/Flatpak/MSI/dmg installers, signed CI builds, auto-update.
+- [ ] **Phase 5 — Plugin Architecture** *(infra)*: a plugin API for third-party block packs, boards, and themes; Arduino library-manager integration.
+- [ ] **Phase 6 — Expanded Block & Board Ecosystem** *(features)*: Servo, I2C/SPI, sensors, NeoPixel, ESP32/RP2040, non-blocking timers, interrupts, state machines.
+- [ ] **Phase 7 — Education & Community Platform** *(features)*: in-app tutorials, example gallery, shareable projects, i18n, onboarding wizard, optional simulator.
+- [ ] **Phase 8 — Polish, Stability & 2.0 Launch** *(infra + release)*: accessibility, performance profiling, opt-in crash reporting, docs site, community channels, **v2.0**.
 
 ---
 
