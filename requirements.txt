@@ -13,3 +13,6 @@ pyserial
 
 # Realtime serial plotter widget
 pyqtgraph
+
+# Code editor widget for the dual-mode editable code view (Phase 3)
+PyQt6-QScintilla
