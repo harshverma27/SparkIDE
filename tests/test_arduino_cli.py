@@ -2,7 +2,7 @@ import io
 import json
 from unittest.mock import Mock, patch
 
-from cli.arduino_cli import ArduinoCLI, ArduinoCLIError
+from cli.arduino_cli import ArduinoCLI, ArduinoCLIError, parse_compile_stats
 
 
 def test_list_boards_parses_detected_ports():
@@ -152,3 +152,18 @@ def test_run_streaming_reports_parsed_error_on_failure():
     assert ok is False
     error_messages = [text for level, text in lines if level == "error"]
     assert any("Unknown name 'ledPin'" in msg for msg in error_messages)
+
+
+_SAMPLE = """Sketch uses 2408 bytes (7%) of program storage space. Maximum is 32256 bytes.
+Global variables use 184 bytes (8%) of dynamic memory, leaving 1864 bytes for local variables. Maximum is 2048 bytes."""
+
+
+def test_parse_compile_stats_full():
+    stats = parse_compile_stats(_SAMPLE)
+    assert stats.flash_used == 2408 and stats.flash_max == 32256
+    assert stats.ram_used == 184 and stats.ram_max == 2048
+    assert stats.flash_pct == 7  # round(100*2408/32256)
+
+
+def test_parse_compile_stats_none_when_absent():
+    assert parse_compile_stats("nothing useful here") is None

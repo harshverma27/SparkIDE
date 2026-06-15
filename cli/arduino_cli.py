@@ -30,6 +30,39 @@ class BoardOption:
         return f"{self.name} ({self.fqbn}) - {suffix}"
 
 
+@dataclass(frozen=True)
+class CompileStats:
+    flash_used: int
+    flash_max: int
+    ram_used: int
+    ram_max: int
+
+    @property
+    def flash_pct(self) -> int:
+        return round(100 * self.flash_used / self.flash_max) if self.flash_max else 0
+
+    @property
+    def ram_pct(self) -> int:
+        return round(100 * self.ram_used / self.ram_max) if self.ram_max else 0
+
+
+_FLASH_RE = re.compile(r"Sketch uses (\d+) bytes.*?Maximum is (\d+) bytes", re.DOTALL)
+_RAM_RE = re.compile(r"Global variables use (\d+) bytes.*?Maximum is (\d+) bytes", re.DOTALL)
+
+
+def parse_compile_stats(text: str) -> CompileStats | None:
+    flash = _FLASH_RE.search(text)
+    ram = _RAM_RE.search(text)
+    if not flash or not ram:
+        return None
+    return CompileStats(
+        flash_used=int(flash.group(1)),
+        flash_max=int(flash.group(2)),
+        ram_used=int(ram.group(1)),
+        ram_max=int(ram.group(2)),
+    )
+
+
 class ArduinoCLIError(RuntimeError):
     """Raised when arduino-cli is unavailable or returns malformed data."""
 
