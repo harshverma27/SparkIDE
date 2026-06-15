@@ -2,7 +2,7 @@ import io
 import json
 from unittest.mock import Mock, patch
 
-from cli.arduino_cli import ArduinoCLI, ArduinoCLIError, parse_compile_stats
+from cli.arduino_cli import ArduinoCLI, ArduinoCLIError, CoreInfo, parse_compile_stats
 
 
 def test_list_boards_parses_detected_ports():
@@ -167,3 +167,62 @@ def test_parse_compile_stats_full():
 
 def test_parse_compile_stats_none_when_absent():
     assert parse_compile_stats("nothing useful here") is None
+
+
+_CORE_LIST_PAYLOAD = {
+    "platforms": [
+        {
+            "id": "arduino:avr",
+            "installed_version": "1.8.6",
+            "latest_version": "1.8.6",
+            "releases": {"1.8.6": {"name": "Arduino AVR Boards"}},
+        }
+    ]
+}
+
+
+def test_core_list_parses_platforms():
+    completed = Mock(returncode=0, stdout=json.dumps(_CORE_LIST_PAYLOAD), stderr="")
+
+    with (
+        patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"),
+        patch("cli.arduino_cli.subprocess.run", return_value=completed),
+    ):
+        cores = ArduinoCLI().core_list()
+
+    assert len(cores) == 1
+    assert cores[0].id == "arduino:avr"
+    assert cores[0].name == "Arduino AVR Boards"
+    assert cores[0].installed == "1.8.6"
+    assert cores[0].latest == "1.8.6"
+    assert cores[0].upgradable is False
+
+
+def test_core_search_parses_results():
+    payload = {
+        "platforms": [
+            {
+                "id": "esp32:esp32",
+                "installed_version": "",
+                "latest_version": "2.0.0",
+                "releases": {"2.0.0": {"name": "esp32"}},
+            }
+        ]
+    }
+    completed = Mock(returncode=0, stdout=json.dumps(payload), stderr="")
+
+    with (
+        patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"),
+        patch("cli.arduino_cli.subprocess.run", return_value=completed),
+    ):
+        cores = ArduinoCLI().core_search("esp32")
+
+    assert len(cores) == 1
+    assert cores[0].id == "esp32:esp32"
+    assert cores[0].installed == ""
+    assert cores[0].latest == "2.0.0"
+    assert cores[0].upgradable is False
+
+
+def test_core_info_upgradable():
+    assert CoreInfo(id="x", name="x", installed="1.0.0", latest="2.0.0").upgradable is True

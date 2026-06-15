@@ -46,6 +46,18 @@ class CompileStats:
         return round(100 * self.ram_used / self.ram_max) if self.ram_max else 0
 
 
+@dataclass(frozen=True)
+class CoreInfo:
+    id: str
+    name: str
+    installed: str = ""
+    latest: str = ""
+
+    @property
+    def upgradable(self) -> bool:
+        return bool(self.installed) and bool(self.latest) and self.installed != self.latest
+
+
 _FLASH_RE = re.compile(r"Sketch uses (\d+) bytes.*?Maximum is (\d+) bytes", re.DOTALL)
 _RAM_RE = re.compile(r"Global variables use (\d+) bytes.*?Maximum is (\d+) bytes", re.DOTALL)
 
@@ -123,6 +135,40 @@ class ArduinoCLI:
             ["upload", "--fqbn", fqbn, "--port", port, str(sketch_path)],
             callback,
         )
+
+    def core_list(self) -> list[CoreInfo]:
+        data = self._run_json(["core", "list", "--format", "json"])
+        return self._parse_cores(data.get("platforms", []) if isinstance(data, dict) else data)
+
+    def core_search(self, query: str) -> list[CoreInfo]:
+        data = self._run_json(["core", "search", query, "--format", "json"])
+        return self._parse_cores(data.get("platforms", []) if isinstance(data, dict) else data)
+
+    def core_install(self, core_id: str, callback: LogCallback) -> bool:
+        return self._run_streaming(["core", "install", core_id], callback)
+
+    def core_upgrade(self, core_id: str, callback: LogCallback) -> bool:
+        return self._run_streaming(["core", "upgrade", core_id], callback)
+
+    def core_uninstall(self, core_id: str, callback: LogCallback) -> bool:
+        return self._run_streaming(["core", "uninstall", core_id], callback)
+
+    @staticmethod
+    def _parse_cores(platforms) -> list[CoreInfo]:
+        cores = []
+        for p in platforms or []:
+            pid = p.get("id", "")
+            if not pid:
+                continue
+            installed = p.get("installed_version", "") or p.get("installed", "")
+            latest = p.get("latest_version", "") or p.get("latest", "")
+            releases = p.get("releases", {})
+            name = p.get("name") or next(
+                (r.get("name") for r in releases.values() if isinstance(r, dict) and r.get("name")),
+                pid,
+            )
+            cores.append(CoreInfo(id=pid, name=name, installed=installed, latest=latest))
+        return sorted(cores, key=lambda c: c.id)
 
     def _run_json(self, args: list[str]) -> dict:
         if not self.is_available():
