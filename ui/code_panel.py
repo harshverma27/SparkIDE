@@ -14,6 +14,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.theme import BG_DARK as BG_HEADER
+from ui.theme import BG_PANEL as BG_EDITOR
+from ui.theme import BORDER as COL_BORDER
+from ui.theme import FONT_MONO
+
 SAMPLE_CODE = """\
 // Generated C++ will appear here as you place blocks.
 
@@ -29,12 +34,6 @@ void loop() {
   delay(1000);
 }
 """
-
-BG_EDITOR = "#101512"
-BG_GUTTER = "#0d130f"
-BG_HEADER = "#0d1310"
-COL_BORDER = "#22322a"
-FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class CppHighlighter(QSyntaxHighlighter):

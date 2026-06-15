@@ -9,14 +9,12 @@ the matching `CHANGELOG.md` section.
 1. **Pick the version.** Follow [SemVer](https://semver.org/): `MAJOR.MINOR.PATCH`.
    Each roadmap phase ships at least a `MINOR` bump.
 
-2. **Update the version string.** It currently appears in three places (keep them
-   in sync — see [CLAUDE.md](../CLAUDE.md)):
-   - `main.py` — `app.setApplicationVersion(...)`
-   - `ui/main_window.py` — the About dialog
-   - `ui/log_panel.py` — `WELCOME_TEXT`
-
-   > After the Phase 1 refactor these collapse into a single source in
-   > `app_config.py`; update that one place and `make bump-version` if available.
+2. **Update the version string.** It lives in a single place — `APP_VERSION` in
+   `app_config.py` — and flows to the QApplication version, the About dialog, and
+   the log welcome line. Bump it with:
+   ```bash
+   make bump-version VERSION=X.Y.Z
+   ```
 
 3. **Update `CHANGELOG.md`.** Rename the `## [Unreleased]` section to
    `## [X.Y.Z] — YYYY-MM-DD` and start a fresh empty `## [Unreleased]` above it.

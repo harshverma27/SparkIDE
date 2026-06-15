@@ -7,21 +7,22 @@ from datetime import datetime
 from PyQt6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 
-WELCOME_TEXT = "SparkIDE v1.0 — Ready.  Connect an Arduino board and click Compile."
+from app_config import version_label
+from ui.theme import ACCENT_AMBER, ACCENT_ERROR, ACCENT_GRN, BORDER, FONT_MONO
+from ui.theme import BG_DARK as BG_HEADER
+from ui.theme import BG_DEEP as BG_PANEL
 
-# Colour palette — Hybrid Lab Console (terminal/maker-lab)
+WELCOME_TEXT = f"{version_label()} — Ready.  Connect an Arduino board and click Compile."
+
+# Colour palette — Hybrid Lab Console (terminal/maker-lab). info/dim are
+# log-specific; the rest reuse the shared accent tokens.
 _COLOURS = {
     "info": "#7fa89c",  # muted teal-gray
-    "warning": "#f0a93e",  # amber
-    "error": "#f0654a",  # warm red
-    "success": "#4ade80",  # phosphor green
+    "warning": ACCENT_AMBER,
+    "error": ACCENT_ERROR,
+    "success": ACCENT_GRN,
     "dim": "#3f4f48",  # muted / timestamps
 }
-
-BG_PANEL = "#0a0f0c"
-BG_HEADER = "#0d1310"
-BORDER = "#22322a"
-FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class LogPanel(QWidget):

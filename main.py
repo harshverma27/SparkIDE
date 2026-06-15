@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 from PyQt6.QtGui import QColor, QFont, QPalette
 from PyQt6.QtWidgets import QApplication
 
+from app_config import APP_NAME, APP_ORG, APP_VERSION
 from ui.main_window import MainWindow
 
 
@@ -55,9 +56,9 @@ def _apply_dark_theme(app: QApplication) -> None:
 
 def main() -> None:
     app = QApplication(sys.argv)
-    app.setApplicationName("SparkIDE")
-    app.setApplicationVersion("1.0.0")
-    app.setOrganizationName("SparkIDE")
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(APP_VERSION)
+    app.setOrganizationName(APP_ORG)
 
     _apply_dark_theme(app)
 

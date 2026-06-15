@@ -25,7 +25,7 @@ CLI_INSTALL := https://raw.githubusercontent.com/arduino/arduino-cli/master/inst
 # Detect where arduino-cli ends up after install
 ARDUINO_CLI := $(shell which arduino-cli 2>/dev/null || echo "$(HOME)/bin/arduino-cli")
 
-.PHONY: setup dev-setup run test test-js lint format install-cli install-core clean help
+.PHONY: setup dev-setup run test test-js lint format bump-version install-cli install-core clean help
 
 # ── Default target ─────────────────────────────────────────────────────────────
 all: help
@@ -127,6 +127,13 @@ format: _venv
 	@$(VENV_DIR)/bin/ruff format .
 	@$(VENV_DIR)/bin/ruff check --fix .
 
+# ── Bump version (single source of truth: app_config.py) ──────────────────────
+bump-version:
+	@test -n "$(VERSION)" || (echo "Usage: make bump-version VERSION=X.Y.Z" && exit 1)
+	@sed -i 's/^APP_VERSION = .*/APP_VERSION = "$(VERSION)"/' app_config.py
+	@echo "✅  APP_VERSION set to $(VERSION) in app_config.py"
+	@echo "    Next: update CHANGELOG.md, commit, then 'git tag v$(VERSION)'."
+
 # ── Clean ─────────────────────────────────────────────────────────────────────
 clean:
 	@echo "🧹  Removing virtual environment and build artefacts..."
@@ -147,6 +154,7 @@ help:
 	@echo "  make test-js        Run Node (Blockly generator) tests"
 	@echo "  make lint           Ruff lint + format check and ESLint"
 	@echo "  make format         Auto-format Python with ruff"
+	@echo "  make bump-version   Set APP_VERSION (use VERSION=X.Y.Z)"
 	@echo "  make install-cli    Install arduino-cli only"
 	@echo "  make install-core   Install Arduino AVR core (arduino:avr)"
 	@echo "  make clean          Remove .venv and all build artefacts"

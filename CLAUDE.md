@@ -38,17 +38,29 @@ When adding a new block: define it in `arduino_blocks.js`, add a matching `forBl
 ### Compile/upload flow
 
 - `cli/arduino_cli.py` — `ArduinoCLI` is a synchronous subprocess wrapper around `arduino-cli` (`board list`, `compile`, `upload`), returning `BoardOption` dataclasses and streaming output lines via a `LogCallback`.
-- `ui/main_window.py` runs this off the UI thread via `QThread` subclasses:
+- These `QThread` subclasses live in `ui/workers.py` and are driven by `ui/main_window.py`:
   - `BoardRefreshWorker` — populates board/port dropdowns.
   - `ArduinoJobWorker` — writes the current generated C++ to `build/sparkide_sketch/sparkide_sketch.ino`, then runs `compile` (and `upload` if requested), emitting `line` (log output) and `finished` signals consumed by `LogPanel` and the status bar.
+
+### App shell modules
+
+`ui/main_window.py` is composition-only: `MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow)`. The pieces it composes:
+- `ui/toolbar.py` (`ToolbarMixin`) — builds the top toolbar.
+- `ui/status_bar.py` (`StatusBarMixin`) — builds the telemetry status strip and its update helpers.
+- `ui/workers.py` — the background `QThread` workers (above).
+- `app_config.py` (repo root) — central config: app name/version, repo URL, key paths (`BLOCKLY_HTML`, `BUILD_DIR`, `SKETCH_FILE`), window sizes. No Qt imports, safe for tests.
 
 ### UI panels & design tokens
 
 - `ui/code_panel.py` — read-only C++ preview with `CppHighlighter` (custom `QSyntaxHighlighter`).
 - `ui/log_panel.py` — colour-coded build/upload log (`_COLOURS` dict keyed by level: info/warning/error/success/dim).
-- Visual theme is the **"Hybrid Lab Console"** design (terminal/maker-lab aesthetic, phosphor-green primary accent `#4ade80`, amber warning `#f0a93e`, monospace `FONT_MONO` for brand/code/telemetry). Each of `ui/main_window.py`, `ui/code_panel.py`, and `ui/log_panel.py` defines its own copy of the colour/font constants near the top of the file — keep these in sync when retuning the palette. The same palette is mirrored in `blockly/index.html`'s CSS `:root` vars and `WORKSPACE_THEME`/`TOOLBOX` colours. The design rationale lives in `docs/superpowers/specs/2026-06-12-ui-redesign-design.md`.
+- Visual theme is the **"Hybrid Lab Console"** design (terminal/maker-lab aesthetic, phosphor-green primary accent `#4ade80`, amber warning `#f0a93e`, monospace `FONT_MONO` for brand/code/telemetry). The colour/font tokens and the widget-factory helpers live in **`ui/theme.py`**; `main_window.py`, `code_panel.py`, and `log_panel.py` import from it (some panels alias tokens to local names, e.g. `BG_DEEP as BG_PANEL`). Retune the palette in one place. The same palette is mirrored in `blockly/index.html`'s CSS `:root` vars and `WORKSPACE_THEME`/`TOOLBOX` colours. The design rationale lives in `docs/superpowers/specs/2026-06-12-ui-redesign-design.md`.
 - Status bar acts as a telemetry strip (board/port/block-count pills + a glowing status indicator via `QGraphicsDropShadowEffect`).
 
 ## Versioning
 
-Version strings are duplicated in three places — keep them in sync on a release: `main.py` (`app.setApplicationVersion`), `ui/main_window.py` (About dialog), `ui/log_panel.py` (`WELCOME_TEXT`). See `CHANGELOG.md` for release history and `CONTRIBUTING.md` for contribution conventions (commit prefixes: `feat:`, `fix:`, `docs:`, `ui:`, `refactor:`, `test:`).
+`APP_VERSION` in `app_config.py` is the single source of truth; it flows to the QApplication version, the About dialog, and the log `WELCOME_TEXT`. Bump it with `make bump-version VERSION=X.Y.Z`, then update `CHANGELOG.md` and tag `vX.Y.Z` (see `docs/RELEASING.md`, automated by `.github/workflows/release.yml`). See `CHANGELOG.md` for release history and `CONTRIBUTING.md` for contribution conventions (commit prefixes: `feat:`, `fix:`, `docs:`, `ui:`, `refactor:`, `test:`).
+
+## Quality gates
+
+`make lint` (ruff lint+format + ESLint), `make test` (pytest), and `make test-js` (`node --test`) all run in CI (`.github/workflows/ci.yml`) on every PR. Run them locally before pushing; `make dev-setup` installs the pre-commit hooks.
