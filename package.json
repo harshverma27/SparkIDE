@@ -1,0 +1,16 @@
+{
+  "name": "sparkide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev-only manifest for SparkIDE's JS tooling (ESLint + node:test). Not a published package.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test tests/",
+    "lint": "eslint \"blockly/blocks/**/*.js\" \"blockly/generators/**/*.js\" \"tests/**/*.{js,mjs}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0"
+  }
+}
