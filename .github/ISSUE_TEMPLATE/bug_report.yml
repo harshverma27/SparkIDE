@@ -1,0 +1,55 @@
+name: Bug report
+description: Report something that isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to file a bug! Please fill in as much as you can.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including what you expected instead.
+      placeholder: When I drag the … block and compile, …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can a maintainer reproduce this?
+      placeholder: |
+        1. Place these blocks …
+        2. Click Compile / Upload
+        3. See error …
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: OS / Linux distribution
+      placeholder: "e.g. Ubuntu 24.04 / Arch Linux"
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python3 --version`.
+      placeholder: "e.g. 3.11.9"
+    validations:
+      required: true
+  - type: input
+    id: arduino-cli
+    attributes:
+      label: arduino-cli version (if relevant)
+      placeholder: "Output of `arduino-cli version`"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste the Output panel log or attach a screenshot. Screenshots are very helpful for UI issues.
+    validations:
+      required: false
