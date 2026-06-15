@@ -37,11 +37,13 @@ from app_config import (
 from bridge.channel import Bridge
 from cli.arduino_cli import BoardOption
 from ui import theme
+from ui.board_manager import BoardManagerDialog
 from ui.code_panel import CodePanel
 from ui.log_panel import LogPanel
+from ui.serial_panel import SerialPanel
 from ui.status_bar import StatusBarMixin
 from ui.toolbar import ToolbarMixin
-from ui.workers import ArduinoJobWorker, BoardRefreshWorker
+from ui.workers import ArduinoJobWorker, BoardRefreshWorker, SerialReadWorker
 
 
 class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
@@ -61,6 +63,7 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self._build_toolbar()
         self._build_central()
         self._build_log_dock()
+        self._build_serial_dock()
         self._build_status_bar()
         self._on_refresh_ports()
 
@@ -93,6 +96,12 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         quit_act.setShortcut(QKeySequence("Ctrl+Q"))
         quit_act.triggered.connect(self.close)
         file_menu.addAction(quit_act)
+
+        tools_menu = mb.addMenu("&Tools")
+        bm_act = QAction("&Boards Manager…", self)
+        bm_act.setStatusTip("Install, update, or remove Arduino cores")
+        bm_act.triggered.connect(self._on_boards_manager)
+        tools_menu.addAction(bm_act)
 
         help_menu: QMenu = mb.addMenu("&Help")
         about_act = QAction("&About SparkIDE", self)
@@ -170,6 +179,59 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
             f"}}"
         )
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        self._log_dock = dock
+
+    # ── Serial dock ─────────────────────────────────────────────────────────────
+
+    def _build_serial_dock(self):
+        self._serial_panel = SerialPanel()
+        self._serial_worker = None
+        self._reconnect_after_job = None
+        dock = QDockWidget("Serial", self)
+        dock.setWidget(self._serial_panel)
+        dock.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
+        )
+        dock.setMinimumHeight(160)
+        dock.setStyleSheet(self._log_dock.styleSheet())
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        self._serial_dock = dock
+        self.tabifyDockWidget(self._log_dock, dock)
+        self._log_dock.raise_()
+        self._serial_panel.connect_requested.connect(self._on_serial_connect)
+        self._serial_panel.disconnect_requested.connect(self._on_serial_disconnect)
+        self._serial_panel.send_requested.connect(self._on_serial_send)
+
+    def _on_serial_connect(self, baud: int):
+        port = self._selected_port()
+        if not port:
+            self._show_warning("Select a serial port before connecting.")
+            self._serial_panel.set_connected(False)
+            return
+        self._serial_worker = SerialReadWorker(port, baud, self)
+        self._serial_worker.line_received.connect(self._serial_panel.append_output)
+        self._serial_worker.connection_error.connect(self._on_serial_error)
+        self._serial_worker.start()
+        self._serial_panel.set_connected(True)
+        self._log_panel.append_line(f"Serial connected: {port} @ {baud} baud", "success")
+
+    def _on_serial_disconnect(self):
+        if self._serial_worker:
+            self._serial_worker.stop()
+            self._serial_worker = None
+        self._serial_panel.set_connected(False)
+        self._log_panel.append_line("Serial disconnected.", "info")
+
+    def _on_serial_send(self, text: str, ending: str):
+        if self._serial_worker:
+            self._serial_worker.send(text, ending)
+
+    def _on_serial_error(self, message: str):
+        self._log_panel.append_line(f"Serial error: {message}", "error")
+        self._serial_worker = None
+        self._serial_panel.set_connected(False)
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -292,11 +354,18 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
             self._show_warning("The generated sketch must include setup() and loop().")
             return
 
+        self._reconnect_after_job = None
+        if getattr(self, "_serial_worker", None) is not None and action == "upload":
+            self._reconnect_after_job = self._serial_panel.current_baud()
+            self._on_serial_disconnect()
+            self._log_panel.append_line("Released serial port for upload.", "dim")
+
         self._set_busy(True)
         self._set_status("● Working", theme.ACCENT_AMBER)
         self._log_panel.append_line(f"Starting {action} for {fqbn}...", "info")
         self._job_worker = ArduinoJobWorker(action, fqbn, port, code, self)
         self._job_worker.line.connect(self._log_panel.append_line)
+        self._job_worker.stats.connect(self._update_memory)
         self._job_worker.finished.connect(self._on_job_finished)
         self._job_worker.start()
 
@@ -306,6 +375,16 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self._set_status(
             "● Ready" if ok else "● Failed", theme.ACCENT_GRN if ok else theme.ACCENT_ERROR
         )
+        if getattr(self, "_reconnect_after_job", None) is not None:
+            baud = self._reconnect_after_job
+            self._reconnect_after_job = None
+            self._serial_panel.set_baud(baud)
+            self._on_serial_connect(baud)
+
+    def _on_boards_manager(self):
+        dlg = BoardManagerDialog(parent=self)
+        dlg.exec()
+        self._on_refresh_ports()  # installed cores may change available boards
 
     def _selected_board(self) -> BoardOption | None:
         return self._board_combo.currentData()
