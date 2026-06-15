@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - User-defined function blocks: new "Functions" toolbox category (Blockly procedure blocks) supporting `int` parameters, return values, and early return. Function prototypes and definitions are emitted above `setup()`/`loop()` via multi-pass generation.
 - Headless Node test harness (`tests/generate_code.js`) so pytest can assert real generated C++.
 - **Phase 1 — Foundation Hardening:** GitHub Actions CI (lint, JS tests, pytest on Python 3.10–3.12) and tag-triggered release automation. `ruff` lint+format and ESLint via a `pre-commit` config. A `node:test` runner for the Blockly generators. Issue/PR templates, `SECURITY.md`, and a good-first-issues backlog. Expanded Python test coverage (cli, bridge, code panel, main-window smoke test).
+- **Phase 2 — Serial Monitor & Hardware UX:** built-in serial monitor (pyserial) with baud-rate and line-ending selection, send-line input, and autoscroll; a live serial plotter (pyqtgraph) that graphs numeric/CSV/`label:value` streams; flash & RAM usage pills in the status bar parsed from `arduino-cli compile` output; and an in-app **Tools ▸ Boards Manager** to search, install, update, and uninstall Arduino cores. The serial monitor automatically releases the port during upload and reconnects afterward.
+  - New runtime dependencies: `pyserial` and `pyqtgraph` (see `requirements.txt`).
 
 ### Changed
 - **Phase 1 refactor:** split `ui/main_window.py` into focused modules — `ui/theme.py` (design tokens + widget factories, ending the previous triplication), `ui/toolbar.py`, `ui/status_bar.py`, `ui/workers.py` — and introduced a central `app_config.py` that is the single source of truth for the version string and key paths.

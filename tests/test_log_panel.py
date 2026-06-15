@@ -1,5 +1,6 @@
 """Tests for the build/upload log panel (ui/log_panel.py)."""
 
+from app_config import version_label
 from ui.log_panel import LogPanel
 
 
@@ -9,7 +10,7 @@ def test_append_line_adds_timestamped_message(qapp):
     panel.append_line("Compiled sketch", level="success")
 
     text = panel._editor.toPlainText()
-    assert "SparkIDE v1.0" in text
+    assert version_label() in text
     assert "Compiled sketch" in text
     assert "[" in text and "]" in text
 
