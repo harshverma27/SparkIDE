@@ -1,19 +1,9 @@
-import os
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
-import pytest
-from PyQt6.QtWidgets import QApplication
+"""Tests for the build/upload log panel (ui/log_panel.py)."""
 
 from ui.log_panel import LogPanel
 
 
-@pytest.fixture(scope="module")
-def app():
-    return QApplication.instance() or QApplication([])
-
-
-def test_append_line_adds_timestamped_message(app):
+def test_append_line_adds_timestamped_message(qapp):
     panel = LogPanel()
 
     panel.append_line("Compiled sketch", level="success")
@@ -24,7 +14,7 @@ def test_append_line_adds_timestamped_message(app):
     assert "[" in text and "]" in text
 
 
-def test_clear_removes_all_output(app):
+def test_clear_removes_all_output(qapp):
     panel = LogPanel()
     panel.append_line("Something happened", level="info")
 

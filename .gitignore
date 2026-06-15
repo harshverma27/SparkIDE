@@ -9,6 +9,10 @@ __pycache__/
 
 # Pytest cache
 .pytest_cache/
+.ruff_cache/
+
+# Node / ESLint dev tooling
+node_modules/
 
 # Build artifacts / temp sketch files
 build/

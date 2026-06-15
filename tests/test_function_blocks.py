@@ -2,6 +2,7 @@
 
 Drives the real Blockly generator headlessly via tests/generate_code.js.
 """
+
 import json
 import shutil
 import subprocess
@@ -40,24 +41,32 @@ def setup_loop(setup_block=None, loop_block=None):
 
 
 def test_statement_chains_emit_every_block():
-    code = generate([
-        setup_loop(
-            setup_block={
-                "type": "arduino_pinmode",
-                "fields": {"PIN": 13, "MODE": "OUTPUT"},
-                "next": {"block": {
-                    "type": "arduino_serial_begin", "fields": {"BAUD": "9600"},
-                }},
-            },
-            loop_block={
-                "type": "arduino_pin_toggle",
-                "fields": {"PIN": 13},
-                "next": {"block": {
-                    "type": "arduino_delay", "fields": {"MS": 500},
-                }},
-            },
-        )
-    ])
+    code = generate(
+        [
+            setup_loop(
+                setup_block={
+                    "type": "arduino_pinmode",
+                    "fields": {"PIN": 13, "MODE": "OUTPUT"},
+                    "next": {
+                        "block": {
+                            "type": "arduino_serial_begin",
+                            "fields": {"BAUD": "9600"},
+                        }
+                    },
+                },
+                loop_block={
+                    "type": "arduino_pin_toggle",
+                    "fields": {"PIN": 13},
+                    "next": {
+                        "block": {
+                            "type": "arduino_delay",
+                            "fields": {"MS": 500},
+                        }
+                    },
+                },
+            )
+        ]
+    )
     assert "pinMode(13, OUTPUT);" in code
     assert "Serial.begin(9600);" in code
     assert "digitalWrite(13, !digitalRead(13));" in code
@@ -65,23 +74,34 @@ def test_statement_chains_emit_every_block():
 
 
 def test_void_function_definition_and_call():
-    code = generate([
-        {
-            "type": "procedures_defnoreturn",
-            "fields": {"NAME": "blink once"},
-            "inputs": {"STACK": {"block": {
-                "type": "arduino_digitalwrite",
-                "fields": {"PIN": 13, "VALUE": "HIGH"},
-                "next": {"block": {
-                    "type": "arduino_delay", "fields": {"MS": 200},
-                }},
-            }}},
-        },
-        setup_loop(loop_block={
-            "type": "procedures_callnoreturn",
-            "extraState": {"name": "blink once"},
-        }),
-    ])
+    code = generate(
+        [
+            {
+                "type": "procedures_defnoreturn",
+                "fields": {"NAME": "blink once"},
+                "inputs": {
+                    "STACK": {
+                        "block": {
+                            "type": "arduino_digitalwrite",
+                            "fields": {"PIN": 13, "VALUE": "HIGH"},
+                            "next": {
+                                "block": {
+                                    "type": "arduino_delay",
+                                    "fields": {"MS": 200},
+                                }
+                            },
+                        }
+                    }
+                },
+            },
+            setup_loop(
+                loop_block={
+                    "type": "procedures_callnoreturn",
+                    "extraState": {"name": "blink once"},
+                }
+            ),
+        ]
+    )
     # Name is sanitized into a C++ identifier, consistently between def and call.
     assert "void blink_once() {" in code
     assert "blink_once();" in code
@@ -90,87 +110,122 @@ def test_void_function_definition_and_call():
 
 
 def test_function_with_params_and_return_value():
-    code = generate([
-        {
-            "type": "procedures_defreturn",
-            "fields": {"NAME": "doubled"},
-            "extraState": {"params": [{"name": "n", "id": "param_n"}]},
-            "inputs": {"RETURN": {"block": {
-                "type": "math_arithmetic",
-                "fields": {"OP": "MULTIPLY"},
+    code = generate(
+        [
+            {
+                "type": "procedures_defreturn",
+                "fields": {"NAME": "doubled"},
+                "extraState": {"params": [{"name": "n", "id": "param_n"}]},
                 "inputs": {
-                    "A": {"block": {"type": "arduino_variable_get",
-                                    "fields": {"NAME": "n"}}},
-                    "B": {"block": {"type": "math_number",
-                                    "fields": {"NUM": 2}}},
+                    "RETURN": {
+                        "block": {
+                            "type": "math_arithmetic",
+                            "fields": {"OP": "MULTIPLY"},
+                            "inputs": {
+                                "A": {
+                                    "block": {
+                                        "type": "arduino_variable_get",
+                                        "fields": {"NAME": "n"},
+                                    }
+                                },
+                                "B": {"block": {"type": "math_number", "fields": {"NUM": 2}}},
+                            },
+                        }
+                    }
                 },
-            }}},
-        },
-        setup_loop(loop_block={
-            "type": "arduino_analogwrite",
-            "fields": {"PIN": 9},
-            "inputs": {"VALUE": {"block": {
-                "type": "procedures_callreturn",
-                "extraState": {"name": "doubled",
-                               "params": ["n"]},
-                "inputs": {"ARG0": {"block": {
-                    "type": "math_number", "fields": {"NUM": 21},
-                }}},
-            }}},
-        }),
-    ])
+            },
+            setup_loop(
+                loop_block={
+                    "type": "arduino_analogwrite",
+                    "fields": {"PIN": 9},
+                    "inputs": {
+                        "VALUE": {
+                            "block": {
+                                "type": "procedures_callreturn",
+                                "extraState": {"name": "doubled", "params": ["n"]},
+                                "inputs": {
+                                    "ARG0": {
+                                        "block": {
+                                            "type": "math_number",
+                                            "fields": {"NUM": 21},
+                                        }
+                                    }
+                                },
+                            }
+                        }
+                    },
+                }
+            ),
+        ]
+    )
     assert "int doubled(int n) {" in code
     assert "return n * 2;" in code
     assert "analogWrite(9, doubled(21));" in code
 
 
 def test_function_definitions_emitted_before_setup_with_prototype():
-    code = generate([
-        setup_loop(loop_block={
-            "type": "procedures_callnoreturn",
-            "extraState": {"name": "helper"},
-        }),
-        {
-            "type": "procedures_defnoreturn",
-            "fields": {"NAME": "helper"},
-        },
-    ])
+    code = generate(
+        [
+            setup_loop(
+                loop_block={
+                    "type": "procedures_callnoreturn",
+                    "extraState": {"name": "helper"},
+                }
+            ),
+            {
+                "type": "procedures_defnoreturn",
+                "fields": {"NAME": "helper"},
+            },
+        ]
+    )
     assert "void helper();" in code, "missing forward prototype"
     assert code.index("void helper();") < code.index("void helper() {")
     assert code.index("void helper() {") < code.index("void setup() {")
 
 
 def test_if_return_block():
-    code = generate([
-        {
-            "type": "procedures_defreturn",
-            "fields": {"NAME": "clamped"},
-            "extraState": {"params": [{"name": "v", "id": "param_v"}]},
-            "inputs": {
-                "STACK": {"block": {
-                    "type": "procedures_ifreturn",
-                    "extraState": "<mutation value=\"1\"></mutation>",
-                    "inputs": {
-                        "CONDITION": {"block": {
-                            "type": "logic_compare",
-                            "fields": {"OP": "GT"},
+    code = generate(
+        [
+            {
+                "type": "procedures_defreturn",
+                "fields": {"NAME": "clamped"},
+                "extraState": {"params": [{"name": "v", "id": "param_v"}]},
+                "inputs": {
+                    "STACK": {
+                        "block": {
+                            "type": "procedures_ifreturn",
+                            "extraState": '<mutation value="1"></mutation>',
                             "inputs": {
-                                "A": {"block": {"type": "arduino_variable_get",
-                                                "fields": {"NAME": "v"}}},
-                                "B": {"block": {"type": "math_number",
-                                                "fields": {"NUM": 255}}},
+                                "CONDITION": {
+                                    "block": {
+                                        "type": "logic_compare",
+                                        "fields": {"OP": "GT"},
+                                        "inputs": {
+                                            "A": {
+                                                "block": {
+                                                    "type": "arduino_variable_get",
+                                                    "fields": {"NAME": "v"},
+                                                }
+                                            },
+                                            "B": {
+                                                "block": {
+                                                    "type": "math_number",
+                                                    "fields": {"NUM": 255},
+                                                }
+                                            },
+                                        },
+                                    }
+                                },
+                                "VALUE": {"block": {"type": "math_number", "fields": {"NUM": 255}}},
                             },
-                        }},
-                        "VALUE": {"block": {"type": "math_number",
-                                            "fields": {"NUM": 255}}},
+                        }
                     },
-                }},
-                "RETURN": {"block": {"type": "arduino_variable_get",
-                                     "fields": {"NAME": "v"}}},
+                    "RETURN": {"block": {"type": "arduino_variable_get", "fields": {"NAME": "v"}}},
+                },
             },
-        },
-        setup_loop(),
-    ])
+            setup_loop(),
+        ]
+    )
     assert "int clamped(int v) {" in code
     assert "if (v > 255) {" in code
     assert "return 255;" in code
@@ -191,13 +246,13 @@ def test_procedure_blocks_have_friendly_labels():
 
 
 def test_plain_sketch_output_unchanged():
-    code = generate([
-        setup_loop(
-            setup_block={"type": "arduino_pinmode",
-                         "fields": {"PIN": 13, "MODE": "OUTPUT"}},
-            loop_block={"type": "arduino_digitalwrite",
-                        "fields": {"PIN": 13, "VALUE": "HIGH"}},
-        )
-    ])
+    code = generate(
+        [
+            setup_loop(
+                setup_block={"type": "arduino_pinmode", "fields": {"PIN": 13, "MODE": "OUTPUT"}},
+                loop_block={"type": "arduino_digitalwrite", "fields": {"PIN": 13, "VALUE": "HIGH"}},
+            )
+        ]
+    )
     assert "void setup() {\n  pinMode(13, OUTPUT);\n}" in code
     assert "void loop() {\n  digitalWrite(13, HIGH);\n}" in code

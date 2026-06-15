@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - User-defined function blocks: new "Functions" toolbox category (Blockly procedure blocks) supporting `int` parameters, return values, and early return. Function prototypes and definitions are emitted above `setup()`/`loop()` via multi-pass generation.
 - Headless Node test harness (`tests/generate_code.js`) so pytest can assert real generated C++.
+- **Phase 1 — Foundation Hardening:** GitHub Actions CI (lint, JS tests, pytest on Python 3.10–3.12) and tag-triggered release automation. `ruff` lint+format and ESLint via a `pre-commit` config. A `node:test` runner for the Blockly generators. Issue/PR templates, `SECURITY.md`, and a good-first-issues backlog. Expanded Python test coverage (cli, bridge, code panel, main-window smoke test).
+
+### Changed
+- **Phase 1 refactor:** split `ui/main_window.py` into focused modules — `ui/theme.py` (design tokens + widget factories, ending the previous triplication), `ui/toolbar.py`, `ui/status_bar.py`, `ui/workers.py` — and introduced a central `app_config.py` that is the single source of truth for the version string and key paths.
 
 ### Fixed
 - Statement chains now generate code for every block: previously only the first block connected under `setup()`, `loop()`, or any statement input was emitted (the generator never followed next-block connections).

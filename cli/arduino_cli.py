@@ -4,16 +4,15 @@ cli/arduino_cli.py — Subprocess wrapper around the `arduino-cli` tool.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from pathlib import Path
-from queue import Queue
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from queue import Queue
 from threading import Thread
-from typing import Callable
-
 
 LogCallback = Callable[[str, str], None]
 
@@ -74,8 +73,7 @@ class ArduinoCLI:
         """Return boards supported by installed cores, useful before USB discovery."""
         data = self._run_json(["board", "listall", "--format", "json"])
         boards = [
-            BoardOption(name=item.get("name", item.get("fqbn", "Unknown board")),
-                        fqbn=item["fqbn"])
+            BoardOption(name=item.get("name", item.get("fqbn", "Unknown board")), fqbn=item["fqbn"])
             for item in data.get("boards", [])
             if item.get("fqbn")
         ]
@@ -166,18 +164,21 @@ class ArduinoCLI:
             return "arduino-cli failed without an error message."
 
         patterns = [
-            (r"error:\s*'([^']+)'\s+was not declared in this scope",
-             "Unknown name '{0}'. Check the block variable or function name."),
-            (r"error:\s*expected\s+';'\s+before\s+'([^']+)'\s+token",
-             "The generated code is missing a semicolon before '{0}'."),
-            (r"Error during build:\s*(.+)",
-             "Build failed: {0}"),
-            (r"Compilation error:\s*(.+)",
-             "Compilation failed: {0}"),
-            (r"No such file or directory",
-             "A required file or board package is missing."),
-            (r"Permission denied",
-             "Permission denied. Check serial port permissions or board access."),
+            (
+                r"error:\s*'([^']+)'\s+was not declared in this scope",
+                "Unknown name '{0}'. Check the block variable or function name.",
+            ),
+            (
+                r"error:\s*expected\s+';'\s+before\s+'([^']+)'\s+token",
+                "The generated code is missing a semicolon before '{0}'.",
+            ),
+            (r"Error during build:\s*(.+)", "Build failed: {0}"),
+            (r"Compilation error:\s*(.+)", "Compilation failed: {0}"),
+            (r"No such file or directory", "A required file or board package is missing."),
+            (
+                r"Permission denied",
+                "Permission denied. Check serial port permissions or board access.",
+            ),
         ]
         for regex, message in patterns:
             match = re.search(regex, text, re.IGNORECASE)

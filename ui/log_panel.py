@@ -4,26 +4,25 @@ ui/log_panel.py — Build log / output panel (docked at the bottom of the window
 
 from datetime import datetime
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QPushButton, QLabel
-from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 
+from app_config import version_label
+from ui.theme import ACCENT_AMBER, ACCENT_ERROR, ACCENT_GRN, BORDER, FONT_MONO
+from ui.theme import BG_DARK as BG_HEADER
+from ui.theme import BG_DEEP as BG_PANEL
 
-WELCOME_TEXT = "SparkIDE v1.0 — Ready.  Connect an Arduino board and click Compile."
+WELCOME_TEXT = f"{version_label()} — Ready.  Connect an Arduino board and click Compile."
 
-# Colour palette — Hybrid Lab Console (terminal/maker-lab)
+# Colour palette — Hybrid Lab Console (terminal/maker-lab). info/dim are
+# log-specific; the rest reuse the shared accent tokens.
 _COLOURS = {
-    "info":    "#7fa89c",  # muted teal-gray
-    "warning": "#f0a93e",  # amber
-    "error":   "#f0654a",  # warm red
-    "success": "#4ade80",  # phosphor green
-    "dim":     "#3f4f48",  # muted / timestamps
+    "info": "#7fa89c",  # muted teal-gray
+    "warning": ACCENT_AMBER,
+    "error": ACCENT_ERROR,
+    "success": ACCENT_GRN,
+    "dim": "#3f4f48",  # muted / timestamps
 }
-
-BG_PANEL  = "#0a0f0c"
-BG_HEADER = "#0d1310"
-BORDER    = "#22322a"
-FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
 class LogPanel(QWidget):
@@ -44,9 +43,7 @@ class LogPanel(QWidget):
         # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
         header.setFixedHeight(38)
-        header.setStyleSheet(
-            f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};"
-        )
+        header.setStyleSheet(f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};")
         hl = QHBoxLayout(header)
         hl.setContentsMargins(14, 0, 10, 0)
 
@@ -135,9 +132,7 @@ class LogPanel(QWidget):
         cursor.insertText(text)
 
         self._editor.setTextCursor(cursor)
-        self._editor.verticalScrollBar().setValue(
-            self._editor.verticalScrollBar().maximum()
-        )
+        self._editor.verticalScrollBar().setValue(self._editor.verticalScrollBar().maximum())
 
     def clear(self) -> None:
         """Clear all log output."""

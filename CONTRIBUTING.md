@@ -13,7 +13,17 @@ Thanks for your interest in improving SparkIDE! This document covers how to set 
    ```bash
    make setup
    ```
-3. Launch the app to confirm everything works:
+3. Install the development tooling (ruff, pre-commit) and the git hooks:
+   ```bash
+   make dev-setup
+   ```
+   This installs `requirements-dev.txt` and runs `pre-commit install`, so lint and
+   format checks run automatically on every commit.
+4. (Optional) Install the JS dev tooling for ESLint:
+   ```bash
+   npm install
+   ```
+5. Launch the app to confirm everything works:
    ```bash
    make run
    ```
@@ -25,11 +35,16 @@ Thanks for your interest in improving SparkIDE! This document covers how to set 
   git checkout -b feat/my-change
   ```
 - Make your changes. Keep commits focused — one logical change per commit.
-- Run the test suite before opening a PR:
+- Lint and run both test suites before opening a PR:
   ```bash
-  make test
+  make lint      # ruff (lint + format check) + ESLint
+  make test      # Python unit tests
+  make test-js   # Blockly generator tests (node:test)
   ```
-- Push your branch and open a pull request against `main`.
+  If you ran `make dev-setup`, `pre-commit` runs the lint/format hooks for you on
+  each commit; `make format` auto-fixes Python formatting.
+- Push your branch and open a pull request against `main`. CI runs the same lint
+  and test jobs on your PR.
 
 ## Coding Conventions
 
@@ -46,15 +61,21 @@ Thanks for your interest in improving SparkIDE! This document covers how to set 
 
 ## Reporting Bugs / Requesting Features
 
-Open an issue on GitHub with:
+Open an issue on GitHub using one of the issue templates:
 
-- A clear description of the problem or proposal.
-- Steps to reproduce (for bugs), including your Linux distro and Python version.
-- Screenshots or recordings for UI issues — these are especially helpful.
+- **Bug report** — describe what happened, steps to reproduce, and your Linux
+  distro + Python version. Screenshots or recordings for UI issues are especially
+  helpful.
+- **Feature request** — describe the problem it solves and your proposed block,
+  board, or UI change.
+
+Found a security issue? Please follow [SECURITY.md](SECURITY.md) and report it
+privately rather than opening a public issue.
 
 ## Pull Request Checklist
 
-- [ ] `make test` passes.
+- [ ] `make lint` passes (ruff + ESLint).
+- [ ] `make test` and `make test-js` pass.
 - [ ] The app launches and the relevant feature works (`make run`).
 - [ ] New blocks have both a block definition and a generator.
 - [ ] UI changes follow the existing visual design tokens.

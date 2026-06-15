@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a new block, board, or capability.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or the gap you're hitting today.
+      placeholder: I'm teaching a class and need …
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like SparkIDE to do? A new block? A new board family? A UI change?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you've tried or other approaches you weighed.
+    validations:
+      required: false

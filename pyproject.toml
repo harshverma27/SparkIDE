@@ -1,0 +1,28 @@
+# SparkIDE — project metadata & tooling configuration.
+#
+# Runtime dependencies live in requirements.txt; dev tooling in
+# requirements-dev.txt. This file configures ruff (lint + format).
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = [".venv", "build", "blockly/vendor", "__pycache__"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: import sorting, UP: pyupgrade,
+# B: flake8-bugbear. Keeps the net wide but pragmatic.
+select = ["E", "W", "F", "I", "UP", "B"]
+ignore = [
+    "E501",  # line length is enforced by the formatter, not the linter
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# UI tests that need a QApplication are marked `ui`; CI runs them under xvfb.
+markers = [
+    "ui: tests that construct Qt widgets (need a display / xvfb)",
+]

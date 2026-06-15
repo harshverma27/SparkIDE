@@ -1,0 +1,32 @@
+# Pre-commit hooks for SparkIDE.
+# Install once:  pre-commit install
+# Run on all files:  pre-commit run --all-files
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^blockly/vendor/
+      - id: end-of-file-fixer
+        exclude: ^blockly/vendor/
+      - id: check-yaml
+      - id: check-json
+        exclude: ^blockly/vendor/
+      - id: check-merge-conflict
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.18.0
+    hooks:
+      - id: eslint
+        files: ^blockly/(blocks|generators)/.*\.js$
+        additional_dependencies:
+          - eslint@9.18.0
+          - "@eslint/js@9.18.0"
+          - globals@15.14.0
