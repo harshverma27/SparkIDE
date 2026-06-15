@@ -4,25 +4,23 @@ ui/log_panel.py — Build log / output panel (docked at the bottom of the window
 
 from datetime import datetime
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QPushButton, QLabel
-from PyQt6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
-from PyQt6.QtCore import Qt
-
+from PyQt6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 
 WELCOME_TEXT = "SparkIDE v1.0 — Ready.  Connect an Arduino board and click Compile."
 
 # Colour palette — Hybrid Lab Console (terminal/maker-lab)
 _COLOURS = {
-    "info":    "#7fa89c",  # muted teal-gray
+    "info": "#7fa89c",  # muted teal-gray
     "warning": "#f0a93e",  # amber
-    "error":   "#f0654a",  # warm red
+    "error": "#f0654a",  # warm red
     "success": "#4ade80",  # phosphor green
-    "dim":     "#3f4f48",  # muted / timestamps
+    "dim": "#3f4f48",  # muted / timestamps
 }
 
-BG_PANEL  = "#0a0f0c"
+BG_PANEL = "#0a0f0c"
 BG_HEADER = "#0d1310"
-BORDER    = "#22322a"
+BORDER = "#22322a"
 FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
 
@@ -44,9 +42,7 @@ class LogPanel(QWidget):
         # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
         header.setFixedHeight(38)
-        header.setStyleSheet(
-            f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};"
-        )
+        header.setStyleSheet(f"background: {BG_HEADER}; border-bottom: 1px solid {BORDER};")
         hl = QHBoxLayout(header)
         hl.setContentsMargins(14, 0, 10, 0)
 
@@ -135,9 +131,7 @@ class LogPanel(QWidget):
         cursor.insertText(text)
 
         self._editor.setTextCursor(cursor)
-        self._editor.verticalScrollBar().setValue(
-            self._editor.verticalScrollBar().maximum()
-        )
+        self._editor.verticalScrollBar().setValue(self._editor.verticalScrollBar().maximum())
 
     def clear(self) -> None:
         """Clear all log output."""

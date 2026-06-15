@@ -9,16 +9,16 @@ def test_list_boards_parses_detected_ports():
         "detected_ports": [
             {
                 "port": {"address": "/dev/ttyACM0"},
-                "matching_boards": [
-                    {"name": "Arduino UNO", "fqbn": "arduino:avr:uno"}
-                ],
+                "matching_boards": [{"name": "Arduino UNO", "fqbn": "arduino:avr:uno"}],
             }
         ]
     }
     completed = Mock(returncode=0, stdout=json.dumps(payload), stderr="")
 
-    with patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"), \
-            patch("cli.arduino_cli.subprocess.run", return_value=completed):
+    with (
+        patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"),
+        patch("cli.arduino_cli.subprocess.run", return_value=completed),
+    ):
         boards = ArduinoCLI().list_boards()
 
     assert len(boards) == 1
@@ -38,8 +38,10 @@ def test_list_installed_boards_prioritizes_common_avr_boards():
     }
     completed = Mock(returncode=0, stdout=json.dumps(payload), stderr="")
 
-    with patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"), \
-            patch("cli.arduino_cli.subprocess.run", return_value=completed):
+    with (
+        patch("cli.arduino_cli.shutil.which", return_value="/usr/bin/arduino-cli"),
+        patch("cli.arduino_cli.subprocess.run", return_value=completed),
+    ):
         boards = ArduinoCLI().list_installed_boards()
 
     assert [board.fqbn for board in boards] == [

@@ -2,13 +2,17 @@
 ui/code_panel.py — Read-only C++ code preview panel with syntax highlighting.
 """
 
+from PyQt6.QtCore import QRegularExpression, pyqtSlot
+from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit,
-    QPushButton, QLabel, QApplication,
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat, QPainter
-from PyQt6.QtCore import Qt, QRegularExpression, pyqtSlot, QRect
-
 
 SAMPLE_CODE = """\
 // Generated C++ will appear here as you place blocks.
@@ -52,44 +56,74 @@ class CppHighlighter(QSyntaxHighlighter):
 
     def _setup_rules(self):
         keywords = (
-            "void", "int", "bool", "float", "double", "char", "long",
-            "unsigned", "byte", "String", "return", "if", "else", "while",
-            "for", "do", "switch", "case", "break", "continue",
-            "true", "false", "HIGH", "LOW", "INPUT", "OUTPUT", "INPUT_PULLUP",
+            "void",
+            "int",
+            "bool",
+            "float",
+            "double",
+            "char",
+            "long",
+            "unsigned",
+            "byte",
+            "String",
+            "return",
+            "if",
+            "else",
+            "while",
+            "for",
+            "do",
+            "switch",
+            "case",
+            "break",
+            "continue",
+            "true",
+            "false",
+            "HIGH",
+            "LOW",
+            "INPUT",
+            "OUTPUT",
+            "INPUT_PULLUP",
         )
         kw_fmt = self._fmt("#8aa6c4", bold=True)
-        self._rules.append((
-            QRegularExpression(r"\b(" + "|".join(keywords) + r")\b"), kw_fmt
-        ))
+        self._rules.append((QRegularExpression(r"\b(" + "|".join(keywords) + r")\b"), kw_fmt))
 
         builtins = (
-            "pinMode", "digitalWrite", "digitalRead", "analogRead", "analogWrite",
-            "delay", "delayMicroseconds", "millis", "micros", "map", "constrain",
-            "abs", "sqrt", "pow", "random", "min", "max", "round",
-            "Serial", "setup", "loop",
+            "pinMode",
+            "digitalWrite",
+            "digitalRead",
+            "analogRead",
+            "analogWrite",
+            "delay",
+            "delayMicroseconds",
+            "millis",
+            "micros",
+            "map",
+            "constrain",
+            "abs",
+            "sqrt",
+            "pow",
+            "random",
+            "min",
+            "max",
+            "round",
+            "Serial",
+            "setup",
+            "loop",
         )
         bi_fmt = self._fmt("#7ee2a8")
-        self._rules.append((
-            QRegularExpression(r"\b(" + "|".join(builtins) + r")\b"), bi_fmt
-        ))
+        self._rules.append((QRegularExpression(r"\b(" + "|".join(builtins) + r")\b"), bi_fmt))
 
         # Pre-processor
         self._rules.append((QRegularExpression(r"#\w+"), self._fmt("#f0a93e")))
 
         # Numbers
-        self._rules.append((
-            QRegularExpression(r"\b\d+(\.\d+)?\b"), self._fmt("#d9b36a")
-        ))
+        self._rules.append((QRegularExpression(r"\b\d+(\.\d+)?\b"), self._fmt("#d9b36a")))
 
         # Strings
-        self._rules.append((
-            QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), self._fmt("#6fcfc0")
-        ))
+        self._rules.append((QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), self._fmt("#6fcfc0")))
 
         # Single-line comments
-        self._rules.append((
-            QRegularExpression(r"//[^\n]*"), self._fmt("#5c7468", italic=True)
-        ))
+        self._rules.append((QRegularExpression(r"//[^\n]*"), self._fmt("#5c7468", italic=True)))
 
     def highlightBlock(self, text: str):
         for pattern, fmt in self._rules:
@@ -117,10 +151,7 @@ class CodePanel(QWidget):
         # ── Header bar ──────────────────────────────────────────────────────
         header = QWidget()
         header.setFixedHeight(44)
-        header.setStyleSheet(
-            f"background: {BG_HEADER};"
-            f"border-bottom: 1px solid {COL_BORDER};"
-        )
+        header.setStyleSheet(f"background: {BG_HEADER};border-bottom: 1px solid {COL_BORDER};")
         hl = QHBoxLayout(header)
         hl.setContentsMargins(14, 0, 10, 0)
 
@@ -223,6 +254,7 @@ class CodePanel(QWidget):
                 " border-radius: 6px; font-size: 10px; font-weight: 600; }"
             )
             from PyQt6.QtCore import QTimer
+
             def _reset():
                 btn.setText("Copy")
                 btn.setStyleSheet(
@@ -231,4 +263,5 @@ class CodePanel(QWidget):
                     " border-radius: 6px; font-size: 10px; font-weight: 600; }"
                     "QPushButton:hover { background: #1c2620; color: #e4f0e8; }"
                 )
+
             QTimer.singleShot(1500, _reset)

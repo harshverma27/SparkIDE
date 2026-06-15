@@ -4,23 +4,33 @@ ui/main_window.py — PyQt6 Main Application Window.
 
 from pathlib import Path
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QComboBox, QPushButton, QToolBar, QStatusBar,
-    QDockWidget, QSizePolicy, QMenu, QFileDialog, QMessageBox,
-    QGraphicsDropShadowEffect,
-)
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineSettings
+from PyQt6.QtCore import QSize, Qt, QThread, QUrl, pyqtSignal
+from PyQt6.QtGui import QAction, QColor, QKeySequence
 from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtGui import QAction, QKeySequence, QColor
-from PyQt6.QtCore import Qt, QSize, QUrl, QThread, pyqtSignal
+from PyQt6.QtWebEngineCore import QWebEngineSettings
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDockWidget,
+    QFileDialog,
+    QGraphicsDropShadowEffect,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QStatusBar,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
 
-from ui.code_panel import CodePanel
-from ui.log_panel import LogPanel
 from bridge.channel import Bridge
 from cli.arduino_cli import ArduinoCLI, ArduinoCLIError, BoardOption
-
+from ui.code_panel import CodePanel
+from ui.log_panel import LogPanel
 
 # Absolute path to the Blockly host page
 BLOCKLY_HTML = Path(__file__).parent.parent / "blockly" / "index.html"
@@ -28,20 +38,20 @@ BUILD_DIR = Path(__file__).parent.parent / "build" / "sparkide_sketch"
 SKETCH_FILE = BUILD_DIR / "sparkide_sketch.ino"
 
 # ── Design tokens — "Hybrid Lab Console" (terminal/maker-lab) ──────────────────
-BG_DEEP    = "#0a0f0c"
-BG_DARK    = "#0d1310"
-BG_MID     = "#121a16"
-BG_RAISED  = "#171f1b"
-BG_PANEL   = "#101512"
-BORDER     = "#22322a"
-BORDER_HI  = "#3c5347"
+BG_DEEP = "#0a0f0c"
+BG_DARK = "#0d1310"
+BG_MID = "#121a16"
+BG_RAISED = "#171f1b"
+BG_PANEL = "#101512"
+BORDER = "#22322a"
+BORDER_HI = "#3c5347"
 ACCENT_GRN = "#4ade80"
 ACCENT_GRN_HI = "#3fc270"
 ACCENT_AMBER = "#f0a93e"
 ACCENT_ERROR = "#f0654a"
-TEXT_DIM   = "#5c7468"
-TEXT_MID   = "#93a89c"
-TEXT_MAIN  = "#e4f0e8"
+TEXT_DIM = "#5c7468"
+TEXT_MID = "#93a89c"
+TEXT_MAIN = "#e4f0e8"
 
 FONT_MONO = '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace'
 
@@ -124,9 +134,9 @@ class MainWindow(QMainWindow):
 
         file_menu: QMenu = mb.addMenu("&File")
         for label, shortcut, slot, tip in [
-            ("&Save Workspace",     "Ctrl+S", self._on_save,  "Save blocks to JSON"),
-            ("&Open Workspace",     "Ctrl+O", self._on_open,  "Load blocks from JSON"),
-            ("&New / Clear",        "Ctrl+N", self._on_clear, "Reset workspace"),
+            ("&Save Workspace", "Ctrl+S", self._on_save, "Save blocks to JSON"),
+            ("&Open Workspace", "Ctrl+O", self._on_open, "Load blocks from JSON"),
+            ("&New / Clear", "Ctrl+N", self._on_clear, "Reset workspace"),
         ]:
             act = QAction(label, self)
             act.setShortcut(QKeySequence(shortcut))
@@ -220,13 +230,15 @@ class MainWindow(QMainWindow):
         tb.addWidget(spacer)
 
         # ── Action buttons ──────────────────────────────────────────────────
-        self._compile_btn = self._make_btn("⚡  Compile", outline=True,
-                                           tooltip="Compile sketch (arduino-cli)")
+        self._compile_btn = self._make_btn(
+            "⚡  Compile", outline=True, tooltip="Compile sketch (arduino-cli)"
+        )
         self._compile_btn.clicked.connect(self._on_compile)
         tb.addWidget(self._compile_btn)
 
-        self._upload_btn = self._make_btn("⬆  Upload", color=ACCENT_GRN, hover=ACCENT_GRN_HI,
-                                          tooltip="Compile & upload to board")
+        self._upload_btn = self._make_btn(
+            "⬆  Upload", color=ACCENT_GRN, hover=ACCENT_GRN_HI, tooltip="Compile & upload to board"
+        )
         self._upload_btn.clicked.connect(self._on_upload)
         tb.addWidget(self._upload_btn)
 
@@ -260,9 +272,7 @@ class MainWindow(QMainWindow):
 
         frame = QWidget()
         frame.setStyleSheet(
-            f"background: {BG_PANEL};"
-            f"border: 1px solid {BORDER};"
-            f"border-radius: 8px;"
+            f"background: {BG_PANEL};border: 1px solid {BORDER};border-radius: 8px;"
         )
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
@@ -273,7 +283,7 @@ class MainWindow(QMainWindow):
 
     def _setup_web_channel(self):
         self._channel = QWebChannel()
-        self._bridge  = Bridge()
+        self._bridge = Bridge()
         self._channel.registerObject("bridge", self._bridge)
         self._web_view.page().setWebChannel(self._channel)
         self._bridge.set_page(self._web_view.page())
@@ -288,9 +298,9 @@ class MainWindow(QMainWindow):
         dock = QDockWidget("Output", self)
         dock.setWidget(self._log_panel)
         dock.setFeatures(
-            QDockWidget.DockWidgetFeature.DockWidgetClosable  |
-            QDockWidget.DockWidgetFeature.DockWidgetMovable   |
-            QDockWidget.DockWidgetFeature.DockWidgetFloatable
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
         dock.setMinimumHeight(130)
         dock.setStyleSheet(
@@ -400,12 +410,11 @@ class MainWindow(QMainWindow):
             if path:
                 Path(path).write_text(json_str)
                 self._log_panel.append_line(f"✔  Workspace saved → {path}", "success")
+
         self._bridge.get_workspace_json(_write)
 
     def _on_open(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Open Workspace", "", "JSON Files (*.json)"
-        )
+        path, _ = QFileDialog.getOpenFileName(self, "Open Workspace", "", "JSON Files (*.json)")
         if path:
             self._bridge.load_workspace(Path(path).read_text())
             self._log_panel.append_line(f"✔  Workspace loaded ← {path}", "success")
@@ -429,9 +438,9 @@ class MainWindow(QMainWindow):
 
     def _update_status(self):
         b = getattr(self, "_board_combo", None)
-        p = getattr(self, "_port_combo",  None)
+        p = getattr(self, "_port_combo", None)
         board = b.currentText() if b else "—"
-        port  = p.currentText() if p else "—"
+        port = p.currentText() if p else "—"
 
         if hasattr(self, "_sb_board"):
             self._sb_board.setText(self._pill_html("BOARD:", board, ACCENT_GRN))
@@ -474,7 +483,10 @@ class MainWindow(QMainWindow):
             self._log_panel.append_line(f"Found {len(ports)} port(s).", "success")
             self._set_status("● Ready", ACCENT_GRN)
         else:
-            self._log_panel.append_line("No serial ports detected. Compile is available; upload needs a connected board.", "warning")
+            self._log_panel.append_line(
+                "No serial ports detected. Compile is available; upload needs a connected board.",
+                "warning",
+            )
             self._set_status("● No port", ACCENT_AMBER)
 
         self._update_status()
@@ -560,8 +572,14 @@ class MainWindow(QMainWindow):
         return cb
 
     @staticmethod
-    def _make_btn(label: str, color: str = "", hover: str = "",
-                  secondary: bool = False, outline: bool = False, tooltip: str = "") -> QPushButton:
+    def _make_btn(
+        label: str,
+        color: str = "",
+        hover: str = "",
+        secondary: bool = False,
+        outline: bool = False,
+        tooltip: str = "",
+    ) -> QPushButton:
         btn = QPushButton(label)
         btn.setFixedHeight(34)
         if tooltip:
