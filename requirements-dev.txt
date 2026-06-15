@@ -1,0 +1,14 @@
+# SparkIDE development dependencies.
+# Install with:  pip install -r requirements-dev.txt
+# (Runtime deps are in requirements.txt.)
+
+-r requirements.txt
+
+# Test runner
+pytest
+
+# Lint + format (replaces flake8/black with a single fast tool)
+ruff
+
+# Git pre-commit hook runner
+pre-commit
