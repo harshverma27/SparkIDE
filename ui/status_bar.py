@@ -32,12 +32,19 @@ class StatusBarMixin:
         self._sb_blocks = theme.status_pill()
         sb.addWidget(self._sb_blocks)
 
+        self._sb_flash = theme.status_pill()
+        sb.addWidget(self._sb_flash)
+
+        self._sb_ram = theme.status_pill()
+        sb.addWidget(self._sb_ram)
+
         # Status indicator (right side)
         self._sb_status = QLabel("● Idle")
         sb.addPermanentWidget(self._sb_status)
 
         self._update_status()
         self._update_block_count(0)
+        self._update_memory(None)
         self._set_status("● Idle", theme.ACCENT_GRN)
 
     def _update_status(self):
@@ -54,6 +61,28 @@ class StatusBarMixin:
     def _update_block_count(self, count: int):
         if hasattr(self, "_sb_blocks"):
             self._sb_blocks.setText(theme.pill_html("BLOCKS:", str(count), theme.ACCENT_AMBER))
+
+    def _update_memory(self, stats):
+        def fmt(used, mx, pct):
+            accent = (
+                theme.ACCENT_GRN
+                if pct < 60
+                else theme.ACCENT_AMBER
+                if pct < 85
+                else theme.ACCENT_ERROR
+            )
+            return accent, f"{used:,}/{mx:,} ({pct}%)"
+
+        if not hasattr(self, "_sb_flash"):
+            return
+        if stats is None:
+            self._sb_flash.setText(theme.pill_html("FLASH:", "—", theme.TEXT_DIM))
+            self._sb_ram.setText(theme.pill_html("RAM:", "—", theme.TEXT_DIM))
+            return
+        fa, ft = fmt(stats.flash_used, stats.flash_max, stats.flash_pct)
+        ra, rt = fmt(stats.ram_used, stats.ram_max, stats.ram_pct)
+        self._sb_flash.setText(theme.pill_html("FLASH:", ft, fa))
+        self._sb_ram.setText(theme.pill_html("RAM:", rt, ra))
 
     def _set_status(self, text: str, colour: str):
         if hasattr(self, "_sb_status"):

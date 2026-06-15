@@ -8,5 +8,8 @@ PyQt6
 # Provides QWebEngineView (to embed Blockly HTML) and QWebChannel (Python <-> JS bridge)
 PyQt6-WebEngine
 
-# --- Phase 2 dependencies (not needed yet) ---
-# pyserial    # Serial monitor: read Serial.print() output from the board
+# Serial monitor: read Serial.print() output from the board
+pyserial
+
+# Realtime serial plotter widget
+pyqtgraph

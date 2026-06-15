@@ -51,3 +51,32 @@ def test_main_window_builds(qapp):
     # Block-count telemetry updates through the mixin helper.
     window._update_block_count(5)
     assert "5" in window._sb_blocks.text()
+
+
+def _build_window():
+    with (
+        patch.object(main_window, "QWebEngineView", _FakeWebView),
+        patch.object(main_window, "BoardRefreshWorker"),
+    ):
+        return MainWindow()
+
+
+def test_serial_panel_and_dock_present(qapp):
+    window = _build_window()
+    assert hasattr(window, "_serial_panel")
+    assert hasattr(window, "_serial_dock")
+    assert window._serial_panel is not None
+
+
+def test_tools_menu_present(qapp):
+    window = _build_window()
+    titles = [a.text() for a in window.menuBar().actions()]
+    assert any("Tools" in t for t in titles)
+
+
+def test_update_memory_handles_none_and_stats(qapp):
+    from cli.arduino_cli import CompileStats
+
+    window = _build_window()
+    window._update_memory(None)
+    window._update_memory(CompileStats(2408, 32256, 184, 2048))

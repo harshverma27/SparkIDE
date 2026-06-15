@@ -11,7 +11,7 @@ from pathlib import Path
 # ── Identity ──────────────────────────────────────────────────────────────────
 APP_NAME = "SparkIDE"
 APP_ORG = "SparkIDE"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_TAGLINE = "Visual Arduino programming for Linux."
 REPO_URL = "https://github.com/harshverma27/SparkIDE"
 

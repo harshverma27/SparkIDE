@@ -37,10 +37,13 @@ When adding a new block: define it in `arduino_blocks.js`, add a matching `forBl
 
 ### Compile/upload flow
 
-- `cli/arduino_cli.py` — `ArduinoCLI` is a synchronous subprocess wrapper around `arduino-cli` (`board list`, `compile`, `upload`), returning `BoardOption` dataclasses and streaming output lines via a `LogCallback`.
+- `cli/arduino_cli.py` — `ArduinoCLI` is a synchronous subprocess wrapper around `arduino-cli` (`board list`, `compile`, `upload`), returning `BoardOption` dataclasses and streaming output lines via a `LogCallback`. It also parses compile output for flash/RAM usage (`parse_compile_stats` → `CompileStats`) and manages cores (`core_list`/`core_search`/`core_install`/`core_upgrade`/`core_uninstall` → `CoreInfo`) for the Boards Manager.
+- `cli/serial_io.py` — Qt-free serial helpers: `parse_plot_values` (parses numeric/CSV/`label:value` lines for the plotter), `list_serial_ports`, `BAUD_RATES`, and `LINE_ENDINGS`.
 - These `QThread` subclasses live in `ui/workers.py` and are driven by `ui/main_window.py`:
   - `BoardRefreshWorker` — populates board/port dropdowns.
-  - `ArduinoJobWorker` — writes the current generated C++ to `build/sparkide_sketch/sparkide_sketch.ino`, then runs `compile` (and `upload` if requested), emitting `line` (log output) and `finished` signals consumed by `LogPanel` and the status bar.
+  - `ArduinoJobWorker` — writes the current generated C++ to `build/sparkide_sketch/sparkide_sketch.ino`, then runs `compile` (and `upload` if requested), emitting `line` (log output), `stats` (`CompileStats`, consumed by the status-bar memory pills), and `finished` signals consumed by `LogPanel` and the status bar.
+  - `SerialReadWorker` — reads a serial port on a background thread and exposes a thread-safe `send()` for writing back to the port.
+  - `CoreJobWorker` — runs `arduino-cli core install`/`upgrade`/`uninstall` jobs for the Boards Manager.
 
 ### App shell modules
 
@@ -54,8 +57,15 @@ When adding a new block: define it in `arduino_blocks.js`, add a matching `forBl
 
 - `ui/code_panel.py` — read-only C++ preview with `CppHighlighter` (custom `QSyntaxHighlighter`).
 - `ui/log_panel.py` — colour-coded build/upload log (`_COLOURS` dict keyed by level: info/warning/error/success/dim).
+- `ui/serial_panel.py` (`SerialPanel`) — serial monitor + plotter in a `QStackedWidget`, with baud-rate/line-ending selectors, a send-line input, and autoscroll; backed by `SerialReadWorker`.
+- `ui/serial_plotter.py` (`SerialPlotter`) — live multi-series plot (pyqtgraph) driven by `cli/serial_io.parse_plot_values`.
+- `ui/board_manager.py` (`BoardManagerDialog`) — Tools ▸ Boards Manager… dialog to search, install, update, and uninstall `arduino-cli` cores via `CoreJobWorker`.
 - Visual theme is the **"Hybrid Lab Console"** design (terminal/maker-lab aesthetic, phosphor-green primary accent `#4ade80`, amber warning `#f0a93e`, monospace `FONT_MONO` for brand/code/telemetry). The colour/font tokens and the widget-factory helpers live in **`ui/theme.py`**; `main_window.py`, `code_panel.py`, and `log_panel.py` import from it (some panels alias tokens to local names, e.g. `BG_DEEP as BG_PANEL`). Retune the palette in one place. The same palette is mirrored in `blockly/index.html`'s CSS `:root` vars and `WORKSPACE_THEME`/`TOOLBOX` colours. The design rationale lives in `docs/superpowers/specs/2026-06-12-ui-redesign-design.md`.
-- Status bar acts as a telemetry strip (board/port/block-count pills + a glowing status indicator via `QGraphicsDropShadowEffect`).
+- Status bar acts as a telemetry strip (board/port/block-count pills, flash/RAM usage pills via `_update_memory`, + a glowing status indicator via `QGraphicsDropShadowEffect`).
+
+### Serial port handoff
+
+Only one owner of the serial port at a time: `MainWindow` disconnects the serial monitor (`SerialReadWorker`) before starting an upload and reconnects it after `_on_job_finished`, so `arduino-cli upload` can claim the port without contention.
 
 ## Versioning
 
