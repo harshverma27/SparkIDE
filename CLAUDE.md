@@ -41,7 +41,7 @@ When adding a new block: define it in `arduino_blocks.js`, add a matching `forBl
 - `cli/serial_io.py` — Qt-free serial helpers: `parse_plot_values` (parses numeric/CSV/`label:value` lines for the plotter), `list_serial_ports`, `BAUD_RATES`, and `LINE_ENDINGS`.
 - These `QThread` subclasses live in `ui/workers.py` and are driven by `ui/main_window.py`:
   - `BoardRefreshWorker` — populates board/port dropdowns.
-  - `ArduinoJobWorker` — writes the current generated C++ to `build/sparkide_sketch/sparkide_sketch.ino`, then runs `compile` (and `upload` if requested), emitting `line` (log output), `stats` (`CompileStats`, consumed by the status-bar memory pills), and `finished` signals consumed by `LogPanel` and the status bar.
+  - `ArduinoJobWorker` — writes the current generated C++ to a sketch `.ino`, then runs `compile` (and `upload` if requested), emitting `line` (log output), `stats` (`CompileStats`, consumed by the status-bar memory pills), and `finished` signals consumed by `LogPanel` and the status bar. With no project open it targets `build/sparkide_sketch/sparkide_sketch.ino`; when a project is open `MainWindow` passes `sketch_dir=<project root>` so the whole folder (generated sketch + companion files) is compiled in place.
   - `SerialReadWorker` — reads a serial port on a background thread and exposes a thread-safe `send()` for writing back to the port.
   - `CoreJobWorker` — runs `arduino-cli core install`/`upgrade`/`uninstall` jobs for the Boards Manager.
 
@@ -51,16 +51,27 @@ When adding a new block: define it in `arduino_blocks.js`, add a matching `forBl
 - `ui/toolbar.py` (`ToolbarMixin`) — builds the top toolbar.
 - `ui/status_bar.py` (`StatusBarMixin`) — builds the telemetry status strip and its update helpers.
 - `ui/workers.py` — the background `QThread` workers (above).
-- `app_config.py` (repo root) — central config: app name/version, repo URL, key paths (`BLOCKLY_HTML`, `BUILD_DIR`, `SKETCH_FILE`), window sizes. No Qt imports, safe for tests.
+- `app_config.py` (repo root) — central config: app name/version, repo URL, key paths (`BLOCKLY_HTML`, `BUILD_DIR`, `SKETCH_FILE`, `USER_CONFIG_DIR`), window sizes. No Qt imports, safe for tests.
+
+### Projects & editor (Phase 3)
+
+- `project/` — Qt-free project layer (testable without a running Qt app, like `cli/`):
+  - `project/model.py` — `Project`/`ProjectFile` frozen dataclasses for **sketch-folder projects** (a folder whose main `.ino` matches the folder name, Arduino-style). `create_project`/`open_project`/`is_sketch_folder`; `companion_files()` returns the editable `.h`/`.cpp`/extra-`.ino` files; `workspace_path` is the saved Blockly JSON. Project names are validated `^[A-Za-z0-9_]+$`.
+  - `project/recent.py` — recent-projects MRU stored as JSON under `USER_CONFIG_DIR` (`load_recent`/`add_recent`/`clear_recent`; dedupes, caps at 10, prunes missing folders).
+  - `project/autosave.py` — pure `files_to_autosave(buffers, on_disk)` returning only the buffers whose text differs from disk.
+- `ui/editor/` — the dual-mode editor (replaces the old `ui/code_panel.py`):
+  - `ui/editor/code_editor.py` (`CodeEditor`) — themed `QsciScintilla` C++ editor (QsciLexerCPP, line numbers, brace matching, folding, autocomplete).
+  - `ui/editor/editor_tabs.py` (`EditorTabs`) — tabbed host with a **read-only "Generated" tab** (driven live by `bridge.code_changed` → `update_code`; `current_code()` feeds compile/upload) plus **editable companion-file tabs** (`open_file`/`new_file`/`close_file`/`dirty_buffers`/`mark_saved`, dirty `●` markers, `dirty_changed` signal).
+- **Block-authoritative block↔code model:** blocks own the generated sketch, which is shown read-only — there is no code→block round-trip. Companion `.h`/`.cpp`/`.ino` files are freely editable. `MainWindow` opens/creates projects (`_on_new_project`/`_on_open_project`/`_on_open_recent`/`_on_new_file`), populates `EditorTabs`, and runs a 30s `QTimer` autosave (`_on_autosave`) that writes dirty buffers (via `files_to_autosave`) and the workspace JSON to disk.
 
 ### UI panels & design tokens
 
-- `ui/code_panel.py` — read-only C++ preview with `CppHighlighter` (custom `QSyntaxHighlighter`).
+- `ui/editor/` — the tabbed code editor (see *Projects & editor* above); replaces the former read-only `ui/code_panel.py`.
 - `ui/log_panel.py` — colour-coded build/upload log (`_COLOURS` dict keyed by level: info/warning/error/success/dim).
 - `ui/serial_panel.py` (`SerialPanel`) — serial monitor + plotter in a `QStackedWidget`, with baud-rate/line-ending selectors, a send-line input, and autoscroll; backed by `SerialReadWorker`.
 - `ui/serial_plotter.py` (`SerialPlotter`) — live multi-series plot (pyqtgraph) driven by `cli/serial_io.parse_plot_values`.
 - `ui/board_manager.py` (`BoardManagerDialog`) — Tools ▸ Boards Manager… dialog to search, install, update, and uninstall `arduino-cli` cores via `CoreJobWorker`.
-- Visual theme is the **"Hybrid Lab Console"** design (terminal/maker-lab aesthetic, phosphor-green primary accent `#4ade80`, amber warning `#f0a93e`, monospace `FONT_MONO` for brand/code/telemetry). The colour/font tokens and the widget-factory helpers live in **`ui/theme.py`**; `main_window.py`, `code_panel.py`, and `log_panel.py` import from it (some panels alias tokens to local names, e.g. `BG_DEEP as BG_PANEL`). Retune the palette in one place. The same palette is mirrored in `blockly/index.html`'s CSS `:root` vars and `WORKSPACE_THEME`/`TOOLBOX` colours. The design rationale lives in `docs/superpowers/specs/2026-06-12-ui-redesign-design.md`.
+- Visual theme is the **"Hybrid Lab Console"** design (terminal/maker-lab aesthetic, phosphor-green primary accent `#4ade80`, amber warning `#f0a93e`, monospace `FONT_MONO` for brand/code/telemetry). The colour/font tokens and the widget-factory helpers live in **`ui/theme.py`**; `main_window.py`, the `ui/editor/` modules, and `log_panel.py` import from it (some panels alias tokens to local names, e.g. `BG_DEEP as BG_PANEL`). Retune the palette in one place. The same palette is mirrored in `blockly/index.html`'s CSS `:root` vars and `WORKSPACE_THEME`/`TOOLBOX` colours. The design rationale lives in `docs/superpowers/specs/2026-06-12-ui-redesign-design.md`.
 - Status bar acts as a telemetry strip (board/port/block-count pills, flash/RAM usage pills via `_update_memory`, + a glowing status indicator via `QGraphicsDropShadowEffect`).
 
 ### Serial port handoff

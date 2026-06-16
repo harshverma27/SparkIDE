@@ -12,8 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Phase 1 — Foundation Hardening:** GitHub Actions CI (lint, JS tests, pytest on Python 3.10–3.12) and tag-triggered release automation. `ruff` lint+format and ESLint via a `pre-commit` config. A `node:test` runner for the Blockly generators. Issue/PR templates, `SECURITY.md`, and a good-first-issues backlog. Expanded Python test coverage (cli, bridge, code panel, main-window smoke test).
 - **Phase 2 — Serial Monitor & Hardware UX:** built-in serial monitor (pyserial) with baud-rate and line-ending selection, send-line input, and autoscroll; a live serial plotter (pyqtgraph) that graphs numeric/CSV/`label:value` streams; flash & RAM usage pills in the status bar parsed from `arduino-cli compile` output; and an in-app **Tools ▸ Boards Manager** to search, install, update, and uninstall Arduino cores. The serial monitor automatically releases the port during upload and reconnects afterward.
   - New runtime dependencies: `pyserial` and `pyqtgraph` (see `requirements.txt`).
+- **Phase 3 — Editor Depth & Dual-Mode:** a QScintilla-based editable code mode (line numbers, code folding, brace matching, autocomplete) themed to the Hybrid Lab Console palette; folder-based multi-file Arduino projects with **New Project**, **Open Project**, **New File**, **Open Recent**, and timer-based autosave of edited files and the block workspace; a block-authoritative block↔code model where blocks own the read-only generated sketch while companion `.h`/`.cpp`/`.ino` files are freely editable; and compile/upload that builds the whole project folder when a project is open.
+  - New runtime dependency: `PyQt6-QScintilla` (see `requirements.txt`).
 
 ### Changed
+- **Phase 3:** replaced the read-only `CodePanel` with a tabbed `EditorTabs` editor (read-only **Generated** tab + editable companion-file tabs).
 - **Phase 1 refactor:** split `ui/main_window.py` into focused modules — `ui/theme.py` (design tokens + widget factories, ending the previous triplication), `ui/toolbar.py`, `ui/status_bar.py`, `ui/workers.py` — and introduced a central `app_config.py` that is the single source of truth for the version string and key paths.
 
 ### Fixed
