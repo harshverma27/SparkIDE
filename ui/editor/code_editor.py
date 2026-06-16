@@ -7,9 +7,30 @@ place.
 """
 
 from PyQt6.Qsci import QsciLexerCPP, QsciScintilla
-from PyQt6.QtGui import QColor, QFont, QFontMetrics
+from PyQt6.QtGui import QColor, QFont, QFontDatabase, QFontMetrics
 
 from ui import theme
+
+# Preferred coding faces, in order. Whichever is actually installed wins; if none
+# are present we fall back to the system fixed-width font. A real monospace face
+# is required — QScintilla lays out glyphs on fixed-width metrics, so a
+# proportional substitute makes characters overlap.
+_FONT_CANDIDATES = ("JetBrains Mono", "Fira Code", "DejaVu Sans Mono", "Noto Sans Mono")
+
+
+def _monospace_font(size: int = 11) -> QFont:
+    available = set(QFontDatabase.families())
+    for family in _FONT_CANDIDATES:
+        if family in available:
+            font = QFont(family, size)
+            font.setFixedPitch(True)
+            font.setStyleHint(QFont.StyleHint.Monospace)
+            return font
+    font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+    font.setPointSize(size)
+    font.setFixedPitch(True)
+    font.setStyleHint(QFont.StyleHint.Monospace)
+    return font
 
 
 class CodeEditor(QsciScintilla):
@@ -17,11 +38,7 @@ class CodeEditor(QsciScintilla):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        font = QFont("Fira Code", 11)
-        font.setStyleHint(QFont.StyleHint.Monospace)
-        if not font.exactMatch():
-            font = QFont("JetBrains Mono", 11)
-            font.setStyleHint(QFont.StyleHint.Monospace)
+        font = _monospace_font(11)
         self.setFont(font)
 
         lexer = QsciLexerCPP(self)
@@ -62,8 +79,9 @@ class CodeEditor(QsciScintilla):
         lex = self._lexer
         lex.setDefaultPaper(bg)
         lex.setDefaultColor(fg)
+        lex.setFont(self.font())  # every style uses the resolved monospace face
         lex.setPaper(bg)  # all styles share the panel background
-        lex.setColor(fg, QsciLexerCPP.Default)
+        lex.setColor(fg)  # base colour for ALL styles (identifiers, operators, etc.)
         lex.setColor(QColor("#8aa6c4"), QsciLexerCPP.Keyword)
         lex.setColor(QColor("#7ee2a8"), QsciLexerCPP.GlobalClass)
         lex.setColor(QColor("#6fcfc0"), QsciLexerCPP.DoubleQuotedString)
