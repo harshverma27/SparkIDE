@@ -16,3 +16,16 @@ def test_workers_have_expected_signals(qapp):
     assert hasattr(SerialReadWorker, "connection_error")
     assert hasattr(CoreJobWorker, "finished")
     assert hasattr(CoreJobWorker, "line")
+
+
+def test_arduino_job_worker_accepts_sketch_dir(tmp_path):
+    from ui.workers import ArduinoJobWorker
+
+    sketch_dir = tmp_path / "blinky"
+    w = ArduinoJobWorker(
+        "compile", "arduino:avr:uno", "", "void setup(){}\nvoid loop(){}", sketch_dir=sketch_dir
+    )
+    assert w._sketch_dir == sketch_dir
+    # default stays None for the legacy build-dir behaviour
+    w2 = ArduinoJobWorker("compile", "arduino:avr:uno", "", "x")
+    assert w2._sketch_dir is None

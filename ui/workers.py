@@ -4,6 +4,8 @@ ui/workers.py — background QThread workers for board discovery and build jobs.
 Kept off the UI thread so the window stays responsive while arduino-cli runs.
 """
 
+from pathlib import Path
+
 import serial
 from PyQt6.QtCore import QMutex, QMutexLocker, QThread, pyqtSignal
 
@@ -35,18 +37,27 @@ class ArduinoJobWorker(QThread):
     finished = pyqtSignal(bool, str)
     stats = pyqtSignal(object)
 
-    def __init__(self, action: str, fqbn: str, port: str, code: str, parent=None):
+    def __init__(
+        self, action: str, fqbn: str, port: str, code: str, parent=None, *, sketch_dir=None
+    ):
         super().__init__(parent)
         self._action = action
         self._fqbn = fqbn
         self._port = port
         self._code = code
+        self._sketch_dir = Path(sketch_dir) if sketch_dir is not None else None
 
     def run(self):
         try:
-            BUILD_DIR.mkdir(parents=True, exist_ok=True)
-            SKETCH_FILE.write_text(self._code, encoding="utf-8")
-            self.line.emit(f"Sketch written to {SKETCH_FILE}", "dim")
+            if self._sketch_dir is not None:
+                build_dir = self._sketch_dir
+                sketch_file = build_dir / f"{build_dir.name}.ino"
+            else:
+                build_dir = BUILD_DIR
+                sketch_file = SKETCH_FILE
+            build_dir.mkdir(parents=True, exist_ok=True)
+            sketch_file.write_text(self._code, encoding="utf-8")
+            self.line.emit(f"Sketch written to {sketch_file}", "dim")
 
             captured: list[str] = []
 
@@ -56,13 +67,13 @@ class ArduinoJobWorker(QThread):
 
             cli = ArduinoCLI()
             if self._action == "compile":
-                ok = cli.compile(self._fqbn, BUILD_DIR, cb)
+                ok = cli.compile(self._fqbn, build_dir, cb)
                 self.stats.emit(parse_compile_stats("\n".join(captured)))
                 self.finished.emit(ok, "Compile complete." if ok else "Compile failed.")
             else:
-                ok = cli.compile(self._fqbn, BUILD_DIR, cb)
+                ok = cli.compile(self._fqbn, build_dir, cb)
                 if ok:
-                    ok = cli.upload(self._fqbn, self._port, BUILD_DIR, cb)
+                    ok = cli.upload(self._fqbn, self._port, build_dir, cb)
                 self.stats.emit(parse_compile_stats("\n".join(captured)))
                 self.finished.emit(ok, "Upload complete." if ok else "Upload failed.")
         except OSError as exc:

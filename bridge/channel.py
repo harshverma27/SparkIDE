@@ -11,10 +11,10 @@ class Bridge(QObject):
     """
     Registered with QWebChannel under the name 'bridge'.
     JavaScript calls:  bridge.on_code_update(cppString)
-    Python emits:      code_changed(cppString)  → CodePanel.update_code()
+    Python emits:      code_changed(cppString)  → EditorTabs.update_code()
     """
 
-    # Emitted whenever Blockly generates new C++ code; connected to CodePanel
+    # Emitted whenever Blockly generates new C++ code; connected to EditorTabs
     code_changed = pyqtSignal(str)
 
     # Emitted whenever the workspace block count changes; connected to the telemetry strip
@@ -55,7 +55,7 @@ class Bridge(QObject):
     def on_code_update(self, cpp_code: str) -> None:
         """
         Called from JavaScript every time the Blockly workspace changes.
-        Emits code_changed so the CodePanel updates in real time.
+        Emits code_changed so the editor's Generated tab updates in real time.
         """
         self.code_changed.emit(cpp_code)
 

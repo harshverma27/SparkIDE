@@ -3,7 +3,7 @@ ui/theme.py — "Hybrid Lab Console" design tokens and widget factories.
 
 Single source of truth for the colour palette, monospace font, and the small
 style-string widget factories shared across the UI. Previously these constants
-were duplicated (and had drifted) across main_window.py, code_panel.py, and
+were duplicated (and had drifted) across main_window.py, the editor, and
 log_panel.py; those modules now import from here.
 """
 

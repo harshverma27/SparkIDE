@@ -9,7 +9,7 @@ shell (menu, central web view, log dock) and the action slots.
 
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineCore import QWebEngineSettings
@@ -17,6 +17,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QDockWidget,
     QFileDialog,
+    QInputDialog,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -36,9 +37,12 @@ from app_config import (
 )
 from bridge.channel import Bridge
 from cli.arduino_cli import BoardOption
+from project import recent
+from project.autosave import files_to_autosave
+from project.model import Project, create_project, open_project
 from ui import theme
 from ui.board_manager import BoardManagerDialog
-from ui.code_panel import CodePanel
+from ui.editor.editor_tabs import EditorTabs
 from ui.log_panel import LogPanel
 from ui.serial_panel import SerialPanel
 from ui.status_bar import StatusBarMixin
@@ -56,6 +60,10 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self.resize(*WINDOW_DEFAULT_SIZE)
         self._refresh_worker = None
         self._job_worker = None
+        self._project: Project | None = None
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setInterval(30_000)
+        self._autosave_timer.timeout.connect(self._on_autosave)
 
         self.setStyleSheet(theme.window_stylesheet())
 
@@ -92,6 +100,30 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
             act.triggered.connect(slot)
             file_menu.addAction(act)
         file_menu.addSeparator()
+        for label, shortcut, slot, tip in [
+            (
+                "New &Project…",
+                "Ctrl+Shift+N",
+                self._on_new_project,
+                "Create a sketch-folder project",
+            ),
+            (
+                "Open Pro&ject…",
+                "Ctrl+Shift+O",
+                self._on_open_project,
+                "Open an existing sketch folder",
+            ),
+            ("Ne&w File…", "", self._on_new_file, "Add a file to the current project"),
+        ]:
+            act = QAction(label, self)
+            if shortcut:
+                act.setShortcut(QKeySequence(shortcut))
+            act.setStatusTip(tip)
+            act.triggered.connect(slot)
+            file_menu.addAction(act)
+        self._recent_menu = file_menu.addMenu("Open &Recent")
+        self._recent_menu.aboutToShow.connect(self._rebuild_recent_menu)
+        file_menu.addSeparator()
         quit_act = QAction("&Quit", self)
         quit_act.setShortcut(QKeySequence("Ctrl+Q"))
         quit_act.triggered.connect(self.close)
@@ -111,7 +143,7 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
     # ── Central widget ────────────────────────────────────────────────────────
 
     def _build_central(self):
-        self._code_panel = CodePanel()
+        self._editor = EditorTabs()
         self._web_view = QWebEngineView()
         self._web_view.settings().setAttribute(
             QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
@@ -126,7 +158,7 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
             f"QSplitter::handle:hover {{ background: {theme.BORDER_HI}; }}"
         )
         splitter.addWidget(self._web_view)
-        splitter.addWidget(self._code_panel)
+        splitter.addWidget(self._editor)
         splitter.setSizes([700, 460])
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
@@ -153,7 +185,7 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self._channel.registerObject("bridge", self._bridge)
         self._web_view.page().setWebChannel(self._channel)
         self._bridge.set_page(self._web_view.page())
-        self._bridge.code_changed.connect(self._code_panel.update_code)
+        self._bridge.code_changed.connect(self._editor.update_code)
         self._bridge.block_count_changed.connect(self._update_block_count)
 
     # ── Log dock ──────────────────────────────────────────────────────────────
@@ -288,6 +320,108 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self._web_view.page().runJavaScript("window.clearWorkspace();")
         self._log_panel.append_line("Workspace cleared.", "info")
 
+    # ── Project lifecycle ───────────────────────────────────────────────────────
+
+    def _on_new_project(self):
+        parent = QFileDialog.getExistingDirectory(self, "Choose parent folder for new project")
+        if not parent:
+            return
+        name, ok = QInputDialog.getText(self, "New Project", "Project name (letters, digits, _):")
+        if not ok or not name:
+            return
+        try:
+            proj = create_project(Path(parent), name)
+        except (ValueError, FileExistsError, OSError) as exc:
+            self._show_warning(f"Could not create project: {exc}")
+            return
+        self._load_project(proj)
+
+    def _on_open_project(self):
+        folder = QFileDialog.getExistingDirectory(self, "Open Project (sketch folder)")
+        if not folder:
+            return
+        try:
+            proj = open_project(Path(folder))
+        except ValueError as exc:
+            self._show_warning(str(exc))
+            return
+        self._load_project(proj)
+
+    def _on_open_recent(self, path: Path):
+        try:
+            proj = open_project(path)
+        except ValueError:
+            # load_recent() prunes missing folders on its next read, so nothing to do here.
+            self._show_warning(f"Project no longer found: {path}")
+            return
+        self._load_project(proj)
+
+    def _load_project(self, proj: Project):
+        self._project = proj
+        recent.add_recent(proj.root)
+        ws = proj.workspace_path.read_text(encoding="utf-8") if proj.workspace_path.exists() else ""
+        if ws.strip():
+            self._bridge.load_workspace(ws)
+        for f in proj.companion_files():
+            self._editor.open_file(f.path)
+        self.setWindowTitle(f"{APP_NAME} — {proj.name}")
+        self._autosave_timer.start()
+        self._log_panel.append_line(f"Project opened: {proj.root}", "success")
+
+    def _on_new_file(self):
+        if self._project is None:
+            self._show_warning("Open or create a project first.")
+            return
+        name, ok = QInputDialog.getText(self, "New File", "File name (e.g. helpers.h):")
+        if not ok or not name:
+            return
+        path = self._project.root / name
+        if path.exists():
+            self._show_warning(f"File already exists: {name}")
+            return
+        self._editor.new_file(path)
+        self._log_panel.append_line(f"Created {name}", "success")
+
+    def _rebuild_recent_menu(self):
+        self._recent_menu.clear()
+        items = recent.load_recent()
+        if not items:
+            act = QAction("(no recent projects)", self)
+            act.setEnabled(False)
+            self._recent_menu.addAction(act)
+            return
+        for path in items:
+            act = QAction(path.name, self)
+            act.setStatusTip(str(path))
+            act.triggered.connect(lambda _checked=False, p=path: self._on_open_recent(p))
+            self._recent_menu.addAction(act)
+
+    def _on_autosave(self):
+        if self._project is None:
+            return
+        buffers = self._editor.dirty_buffers()
+        on_disk = {}
+        for path in buffers:
+            try:
+                on_disk[path] = path.read_text(encoding="utf-8")
+            except OSError:
+                on_disk[path] = None
+        for path, text in files_to_autosave(buffers, on_disk).items():
+            try:
+                path.write_text(text, encoding="utf-8")
+                self._editor.mark_saved(path)
+            except OSError as exc:
+                self._log_panel.append_line(f"Autosave failed for {path.name}: {exc}", "warning")
+
+        def _save_ws(json_str: str):
+            if json_str:
+                try:
+                    self._project.workspace_path.write_text(json_str, encoding="utf-8")
+                except OSError:
+                    pass
+
+        self._bridge.get_workspace_json(_save_ws)
+
     def _on_about(self):
         QMessageBox.about(
             self,
@@ -349,7 +483,7 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
     def _start_job(self, action: str, fqbn: str, port: str):
         if self._job_worker and self._job_worker.isRunning():
             return
-        code = self._code_panel.current_code().strip()
+        code = self._editor.current_code().strip()
         if not code or "void setup()" not in code or "void loop()" not in code:
             self._show_warning("The generated sketch must include setup() and loop().")
             return
@@ -363,7 +497,16 @@ class MainWindow(ToolbarMixin, StatusBarMixin, QMainWindow):
         self._set_busy(True)
         self._set_status("● Working", theme.ACCENT_AMBER)
         self._log_panel.append_line(f"Starting {action} for {fqbn}...", "info")
-        self._job_worker = ArduinoJobWorker(action, fqbn, port, code, self)
+        sketch_dir = self._project.root if self._project is not None else None
+        if sketch_dir is not None:
+            # keep companion files current before compiling the whole folder
+            for path, text in self._editor.dirty_buffers().items():
+                try:
+                    path.write_text(text, encoding="utf-8")
+                    self._editor.mark_saved(path)
+                except OSError as exc:
+                    self._log_panel.append_line(f"Could not save {path.name}: {exc}", "warning")
+        self._job_worker = ArduinoJobWorker(action, fqbn, port, code, self, sketch_dir=sketch_dir)
         self._job_worker.line.connect(self._log_panel.append_line)
         self._job_worker.stats.connect(self._update_memory)
         self._job_worker.finished.connect(self._on_job_finished)
