@@ -1,7 +1,6 @@
 import pytest
 
 from project.model import (
-    Project,
     create_project,
     is_sketch_folder,
     open_project,

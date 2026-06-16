@@ -46,11 +46,26 @@ def test_main_window_builds(qapp):
     assert window._port_combo is not None  # ToolbarMixin
     assert window._compile_btn is not None  # ToolbarMixin
     assert window._sb_status is not None  # StatusBarMixin
-    assert window._code_panel is not None
+    assert window._editor is not None
     assert window._log_panel is not None
     # Block-count telemetry updates through the mixin helper.
     window._update_block_count(5)
     assert "5" in window._sb_blocks.text()
+
+
+def test_open_project_populates_tabs_and_state(qapp, tmp_path):
+    from project.model import create_project
+
+    proj = create_project(tmp_path, "demo")
+    (proj.root / "helpers.h").write_text("#define X 1")
+
+    window = _build_window()
+    window._load_project(proj)
+
+    assert window._project is not None
+    assert window._project.root == proj.root
+    # Generated tab + helpers.h companion are both open.
+    assert proj.root / "helpers.h" in window._editor.open_paths()
 
 
 def _build_window():

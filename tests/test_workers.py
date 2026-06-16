@@ -22,7 +22,9 @@ def test_arduino_job_worker_accepts_sketch_dir(tmp_path):
     from ui.workers import ArduinoJobWorker
 
     sketch_dir = tmp_path / "blinky"
-    w = ArduinoJobWorker("compile", "arduino:avr:uno", "", "void setup(){}\nvoid loop(){}", sketch_dir=sketch_dir)
+    w = ArduinoJobWorker(
+        "compile", "arduino:avr:uno", "", "void setup(){}\nvoid loop(){}", sketch_dir=sketch_dir
+    )
     assert w._sketch_dir == sketch_dir
     # default stays None for the legacy build-dir behaviour
     w2 = ArduinoJobWorker("compile", "arduino:avr:uno", "", "x")

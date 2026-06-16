@@ -10,7 +10,5 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def files_to_autosave(
-    buffers: dict[Path, str], on_disk: dict[Path, str]
-) -> dict[Path, str]:
+def files_to_autosave(buffers: dict[Path, str], on_disk: dict[Path, str]) -> dict[Path, str]:
     return {path: text for path, text in buffers.items() if on_disk.get(path) != text}

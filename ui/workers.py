@@ -37,7 +37,9 @@ class ArduinoJobWorker(QThread):
     finished = pyqtSignal(bool, str)
     stats = pyqtSignal(object)
 
-    def __init__(self, action: str, fqbn: str, port: str, code: str, parent=None, *, sketch_dir=None):
+    def __init__(
+        self, action: str, fqbn: str, port: str, code: str, parent=None, *, sketch_dir=None
+    ):
         super().__init__(parent)
         self._action = action
         self._fqbn = fqbn

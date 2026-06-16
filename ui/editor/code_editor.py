@@ -6,8 +6,8 @@ editor. Theming lives entirely in _apply_theme so the palette is retuned in one
 place.
 """
 
-from PyQt6.QtGui import QColor, QFont, QFontMetrics
 from PyQt6.Qsci import QsciLexerCPP, QsciScintilla
+from PyQt6.QtGui import QColor, QFont, QFontMetrics
 
 from ui import theme
 
