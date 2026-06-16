@@ -20,12 +20,14 @@ SparkIDE brings the ease of Scratch-like block programming to Arduino developmen
 - **Hybrid Lab Console UI**: A terminal/maker-lab inspired theme with a phosphor-green accent, monospace telemetry, and a focused workspace layout.
 - **Live C++ Generation**: Watch your C++ code write itself in real time as you snap blocks together on the left panel.
 - **Blockly Integration**: Offline-ready implementation of Google Blockly loaded via QtWebEngine — no internet connection required.
-- **State Saving**: Save and load Blockly workspaces to `.json` files (`Ctrl+S`, `Ctrl+O`).
+- **Multi-File Projects**: Folder-based Arduino projects (matching the `arduino-cli` sketch layout) with **New Project**, **Open Project**, **New File**, and **Open Recent** — the whole project folder is compiled in one shot when a project is open.
+- **Dual-Mode Editor**: A QScintilla-powered code editor with syntax highlighting, line numbers, code folding, brace matching, and autocomplete. A read-only **Generated** tab shows live C++ from the blocks; additional companion `.h`/`.cpp`/`.ino` tabs are freely editable.
+- **Autosave**: A 30-second timer silently writes dirty editor buffers and the block workspace JSON to disk.
 - **Board Discovery**: Refresh connected Arduino boards and serial ports through `arduino-cli`.
-- **One-Click Compile**: Write the generated C++ to a valid sketch folder and compile it through `arduino-cli`.
-- **One-Click Upload**: Compile and flash the selected board/port directly from the SparkIDE toolbar.
-- **Live Build Logs**: Stream compiler and uploader output into the docked Output panel.
-- **Rich Block Library**: Includes **50+ custom blocks** covering the entire standard Arduino library:
+- **One-Click Compile & Upload**: Compile or flash the selected board/port directly from the toolbar. Live build logs stream into the docked Output panel with flash/RAM usage pills.
+- **Serial Monitor & Plotter**: Built-in serial console with baud-rate/line-ending selection; a live multi-series plotter (pyqtgraph) graphs numeric/CSV/`label:value` streams.
+- **Boards Manager**: In-app **Tools ▸ Boards Manager** to search, install, update, and uninstall `arduino-cli` cores.
+- **Rich Block Library**: 50+ custom blocks covering the full standard Arduino API:
   - **Structure**: `setup()` and `loop()`.
   - **Digital I/O**: `pinMode()`, `digitalWrite()`, `digitalRead()`, pin toggling, button edge cases, and LED blink routines.
   - **Analog I/O**: `analogRead()`, `analogWrite()`, `map()`, and `constrain()`.
@@ -34,6 +36,7 @@ SparkIDE brings the ease of Scratch-like block programming to Arduino developmen
   - **Variables**: Dynamic typing support for `int`, `float`, `String`, and `bool`, including reassignment and compound operators (`+=`, `*=`).
   - **Logic & Math**: `if/else`, comparisons (==, >, <), boolean logic (AND/OR/NOT), arithmetic, modulo, absolute value, exponents, rounding, and min/max boundaries.
   - **Loops**: `for`, `while`, `do...while`, `break`, and `continue`.
+  - **Functions**: User-defined functions with parameters and return values; prototypes emitted above `setup()`/`loop()` via multi-pass generation.
 
 ---
 
@@ -99,10 +102,12 @@ arduino-cli core install arduino:avr
 
 1. Launch SparkIDE with `make run`.
 2. Drag blocks from the category toolbox on the left into the workspace.
-3. Watch the generated Arduino C++ appear live in the **Generated Sketch** panel on the right.
-4. Connect your Arduino board over USB, then hit **↻** to refresh the board/port dropdowns.
-5. Click **Compile** to build the sketch with `arduino-cli`, or **Upload** to compile and flash it to the board.
-6. Save your workspace with `Ctrl+S` and reopen it later with `Ctrl+O`.
+3. Watch the generated Arduino C++ appear live in the **Generated** tab of the editor on the right.
+4. Optionally create a project with **File ▸ New Project** to get a full sketch folder with editable companion files (`.h`, `.cpp`).
+5. Connect your Arduino board over USB, then hit **↻** to refresh the board/port dropdowns.
+6. Click **Compile** to build the sketch (or full project folder) with `arduino-cli`, or **Upload** to compile and flash it to the board.
+7. Open **Tools ▸ Serial Monitor** to read/write the serial port; switch to the plotter tab to graph sensor data live.
+8. Save your workspace with `Ctrl+S` — or let autosave handle it in the background every 30 seconds.
 
 Build and upload logs stream live into the **Output** dock at the bottom of the window.
 
@@ -113,22 +118,37 @@ Build and upload logs stream live into the **Output** dock at the bottom of the 
 ```text
 SparkIDE/
 ├── Makefile                # Automation commands (make setup, run, test, clean)
-├── requirements.txt        # Python dependencies (PyQt6, PyQt6-WebEngine, pytest)
+├── requirements.txt        # Python dependencies
+├── app_config.py           # Central config: version string, key paths
 ├── main.py                 # Application entry point, theme injection
 ├── blockly/                # HTML/JS assets for Google Blockly
 │   ├── index.html          # Host page loaded inside QWebEngineView
-│   ├── blocks/              # Definitions for block shapes + colours
-│   ├── generators/          # Translators from Blocks to C++ syntax
-│   └── vendor/               # Bundled Blockly core (offline-ready)
-├── bridge/                  # PyQt <-> JavaScript comms
-│   └── channel.py            # QWebChannel implementation
-├── cli/                     # arduino-cli wrapper
-│   └── arduino_cli.py         # Board discovery, compile, upload
-├── ui/                      # Native PyQt6 window layout
-│   ├── main_window.py        # App shell, toolbar, menus, telemetry strip
-│   ├── code_panel.py          # Live C++ editor with syntax highlighting
-│   └── log_panel.py           # Terminal-style output dock
-└── tests/                   # Pytest unit tests
+│   ├── blocks/             # Custom block shape + colour definitions
+│   ├── generators/         # Block → C++ code generators
+│   └── vendor/             # Bundled Blockly core (offline-ready)
+├── bridge/                 # PyQt ↔ JavaScript comms
+│   └── channel.py          # QWebChannel bridge (code_changed, block_count_changed)
+├── cli/                    # arduino-cli wrappers (Qt-free, testable)
+│   ├── arduino_cli.py      # Board discovery, compile, upload, core management
+│   └── serial_io.py        # Serial port helpers and plotter line parser
+├── project/                # Project layer (Qt-free, testable)
+│   ├── model.py            # Project / ProjectFile dataclasses, sketch-folder helpers
+│   ├── recent.py           # Recent-projects MRU (JSON, capped at 10)
+│   └── autosave.py         # Pure autosave diff helper
+├── ui/                     # PyQt6 window modules
+│   ├── main_window.py      # App shell (ToolbarMixin + StatusBarMixin composition)
+│   ├── toolbar.py          # Top toolbar
+│   ├── status_bar.py       # Telemetry strip (board/port/blocks/memory pills)
+│   ├── workers.py          # QThread workers: BoardRefresh, ArduinoJob, SerialRead, CoreJob
+│   ├── theme.py            # Design tokens + widget factory helpers
+│   ├── editor/             # Dual-mode code editor
+│   │   ├── code_editor.py  # QsciScintilla C++ editor (themed, line numbers, folding)
+│   │   └── editor_tabs.py  # Tabbed host: read-only Generated tab + editable companion tabs
+│   ├── log_panel.py        # Colour-coded build/upload output dock
+│   ├── serial_panel.py     # Serial monitor + plotter (stacked widget)
+│   ├── serial_plotter.py   # Live pyqtgraph multi-series plotter
+│   └── board_manager.py    # Tools ▸ Boards Manager dialog
+└── tests/                  # Pytest unit tests + Node.js generator tests
 ```
 
 ---
@@ -136,10 +156,12 @@ SparkIDE/
 ## 🧪 Testing
 
 ```bash
-make test
+make test       # Python pytest suite
+make test-js    # Node.js generator tests (node --test)
+make lint       # ruff lint + format + ESLint
 ```
 
-This runs the full `pytest` suite covering the `arduino-cli` wrapper, Blockly/bridge foundation, and log panel behaviour.
+The test suite covers the `arduino-cli` wrapper, Blockly/bridge foundation, log panel behaviour, project model, and autosave logic.
 
 ---
 
@@ -156,15 +178,12 @@ and education reach. The full plan lives in
 - [x] **v0.2 — Hardware Execution**: `arduino-cli` integration, board/port discovery, one-click compile & upload, live build logs.
 - [x] **v1.0 — Hybrid Lab Console**: Full visual redesign with a terminal/maker-lab aesthetic, consolidated Blockly category palette, and a status-bar telemetry strip.
 - [x] **Advanced Blocks — User-defined functions**: Functions toolbox category with parameters and return values, multi-pass C++ generation (prototypes + definitions emitted above `setup()`/`loop()`).
+- [x] **Phase 1 — Foundation Hardening**: GitHub Actions CI, `ruff`/ESLint + pre-commit, expanded tests, contributor docs, release automation, `main_window.py` split into focused modules (`ui/theme.py`, `ui/toolbar.py`, `ui/status_bar.py`, `ui/workers.py`), central `app_config.py`.
+- [x] **Phase 2 — Serial Monitor & Hardware UX**: Built-in serial console, live serial plotter (pyqtgraph), flash/RAM memory pills in the status bar, in-app **Boards Manager** for core install/update/uninstall.
+- [x] **Phase 3 — Editor Depth & Dual-Mode** *(v1.2.0)*: QScintilla-powered editable editor with syntax highlighting, folding, and autocomplete; folder-based multi-file projects with New/Open/Recent and 30-second autosave; block-authoritative block↔code model with a read-only Generated tab and freely editable companion files; compile/upload targeting the whole project folder.
 
-### The road to 2.0 — 8 phases
+### Up next
 
-Each phase is a shippable release. Infrastructure and feature phases are interleaved
-so every release is both stable and exciting.
-
-- [ ] **Phase 1 — Foundation Hardening** *(infra)*: GitHub Actions CI, `ruff`/`black` + pre-commit, expanded tests, contributor docs and templates, release automation, and a refactor of `main_window.py` into focused modules.
-- [ ] **Phase 2 — Serial Monitor & Hardware UX** *(features)*: built-in serial console with baud selection, serial plotter, flash/RAM memory gauges, in-app core/board management.
-- [ ] **Phase 3 — Editor Depth & Dual-Mode** *(features)*: editable text/code mode alongside blocks, multi-file projects with tabs, recent-files, autosave.
 - [ ] **Phase 4 — Cross-Platform Packaging** *(infra)*: Windows + macOS support, bundled `arduino-cli`, AppImage/Flatpak/MSI/dmg installers, signed CI builds, auto-update.
 - [ ] **Phase 5 — Plugin Architecture** *(infra)*: a plugin API for third-party block packs, boards, and themes; Arduino library-manager integration.
 - [ ] **Phase 6 — Expanded Block & Board Ecosystem** *(features)*: Servo, I2C/SPI, sensors, NeoPixel, ESP32/RP2040, non-blocking timers, interrupts, state machines.
@@ -190,3 +209,5 @@ SparkIDE is licensed under the [MIT License](LICENSE).
 - [Google Blockly](https://developers.google.com/blockly) — the visual block editor at the core of SparkIDE.
 - [arduino-cli](https://github.com/arduino/arduino-cli) — official Arduino command-line toolchain used for compiling and uploading sketches.
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) — the native desktop UI framework.
+- [QScintilla](https://riverbankcomputing.com/software/qscintilla/) — the embedded code editor widget used for the dual-mode editor.
+- [pyqtgraph](https://www.pyqtgraph.org/) — fast scientific graphics library powering the serial plotter.
